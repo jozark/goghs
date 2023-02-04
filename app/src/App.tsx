@@ -10,6 +10,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleButtonClick = async () => {
+    setIsLoading(true);
     const response = await fetch("http://localhost:3000/api/getImage", {
       method: "POST",
       headers: {
@@ -21,6 +22,7 @@ function App() {
     });
 
     const data = await response.json();
+    setIsLoading(false);
     setImageUrl(data);
     console.log(data);
   };
@@ -28,7 +30,7 @@ function App() {
   return (
     <div className={styles.app}>
       <div className={styles.container}>
-        <Image source={imageUrl} alt=""></Image>
+        {isLoading ? <>test</> : <Image source={imageUrl} alt=""></Image>}
         <Button type="rectangle" onButtonClick={handleButtonClick}>
           Reimagine
         </Button>
