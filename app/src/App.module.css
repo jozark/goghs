@@ -1,0 +1,11 @@
+.app {
+  height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.container {
+  display: grid;
+  justify-items: center;
+  gap: 1.5rem;
+}

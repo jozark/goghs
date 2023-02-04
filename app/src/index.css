@@ -1,0 +1,29 @@
+:root {
+  --bg-secondary: #252525;
+  --bg-primary: white;
+  --bg-light: #3f3e3e;
+  --txt-secondary: white;
+  --txt-primary: black;
+  --accent-primary: black;
+  --accent-secondary: #484848;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-default);
+  color: var(--txt-primary);
+  background-color: var(--bg-primary);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
