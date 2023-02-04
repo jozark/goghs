@@ -44,10 +44,15 @@ function App() {
     "https://media.discordapp.net/attachments/913148795632631838/1071435446627864607/DT1502_cropped2.png"
   );
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [walletpub, setwalletpub] = useState<String>(
+  );
 
+  const [givbuttonname, setgivbutton] = useState<String>("Search for Goghs");
   useEffect(() => {
     if ((wallet as any).connected) {
       console.log("here");
+      setwalletpub(wallet.publicKey?.toString())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet]);
@@ -59,16 +64,41 @@ function App() {
 
     const metaplex = new Metaplex(connection);
     metaplex.use(keypairIdentity(keypair));
-
-    const owner = new PublicKey("DRwtApBCN8Ei8eS4LNgZXFmmrwY7B7abFMjpGT7Nuoux");
+    console.log(walletpub)
+    const owner = new PublicKey(walletpub as String);
+    const collectionaddress = "DZXXZ1kYS27sayQC2nYTzAhshFcsaxmXAYarYWJXjqAM"
     const allNFTs = await metaplex.nfts().findAllByOwner({ owner });
+    const collectionNFTs = [];
+
+    // find all nfts that have our collectionaddress
+    for (var i = 0; i < allNFTs.length; i++) {
+      var collectionaddy = allNFTs[i].collection?.address.toString()
+
+      if (collectionaddy == collectionaddress) {
+        collectionNFTs.push(allNFTs[i])
+      }
+
+    //handle what to do if found 
+    if (collectionNFTs.length > 0) {
+      const imageuri = collectionNFTs[0].uri;
+      console.log(imageuri);
+      const response = await fetch(imageuri);
+      const data = await response.json();
+      setImageurl(data.image)
+    } else {
+      setgivbutton("NO NFT's FOUND")
+    }
+
+    }
+
+    console.log(collectionNFTs)
     // TODO
     // check which nfts belongs to our collection
     // use wallet address from the connected phantom wallet that is available
     // find the metadata image url for the nfts
     // display first nft that belongs to us as image
 
-    console.log(allNFTs);
+  
   };
 
   const handleButtonClick = async () => {
@@ -104,7 +134,7 @@ function App() {
           Reimagine
         </Button>
         <Button type="rectangle" onButtonClick={handleGibNfts}>
-          gib nfts
+          {givbuttonname}
         </Button>
       </div>
     </div>
