@@ -4,6 +4,12 @@ import Button from "./components/Button/button";
 import Image from "./components/Image/image";
 import LoadingSpinner from "./components/LoadingSpinner/loadingSpinner";
 import {
+  Metaplex,
+  keypairIdentity,
+  bundlrStorage,
+} from "@metaplex-foundation/js";
+import {
+  Keypair,
   clusterApiUrl,
   Connection,
   LAMPORTS_PER_SOL,
@@ -46,6 +52,23 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet]);
 
+  const handleGibNfts = async () => {
+    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+
+    const keypair = Keypair.generate();
+
+    const metaplex = new Metaplex(connection);
+    metaplex.use(keypairIdentity(keypair));
+
+    const owner = new PublicKey("DRwtApBCN8Ei8eS4LNgZXFmmrwY7B7abFMjpGT7Nuoux");
+    // const allNFTs = await metaplex.nfts().findAllByOwner(owner as any);
+    const list = await connection.getTokenLargestAccounts(owner);
+    console.log(list, "list");
+
+    // console.log(allNFTs);
+    console.log(metaplex, "wallet");
+  };
+
   const handleButtonClick = async () => {
     setIsLoading(true);
     const response = await fetch("http://localhost:3001/api/getImage", {
@@ -77,6 +100,9 @@ function App() {
         {isLoading ? <LoadingSpinner /> : <Image source={imageurl} alt="" />}
         <Button type="rectangle" onButtonClick={handleButtonClick}>
           Reimagine
+        </Button>
+        <Button type="rectangle" onButtonClick={handleGibNfts}>
+          gib nfts
         </Button>
       </div>
     </div>
