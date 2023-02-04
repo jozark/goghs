@@ -6,6 +6,7 @@
 
 .container {
   display: grid;
+  margin: 0 1rem;
   justify-items: center;
   gap: 1.5rem;
 }
