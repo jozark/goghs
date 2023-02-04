@@ -1,4 +1,3 @@
-import React from "react";
 import styles from "./image.module.css";
 
 type ImageProps = {
