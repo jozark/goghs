@@ -61,12 +61,14 @@ function App() {
     metaplex.use(keypairIdentity(keypair));
 
     const owner = new PublicKey("DRwtApBCN8Ei8eS4LNgZXFmmrwY7B7abFMjpGT7Nuoux");
-    // const allNFTs = await metaplex.nfts().findAllByOwner(owner as any);
-    const list = await connection.getTokenLargestAccounts(owner);
-    console.log(list, "list");
+    const allNFTs = await metaplex.nfts().findAllByOwner({ owner });
+    // TODO
+    // check which nfts belongs to our collection
+    // use wallet address from the connected phantom wallet that is available
+    // find the metadata image url for the nfts
+    // display first nft that belongs to us as image
 
-    // console.log(allNFTs);
-    console.log(metaplex, "wallet");
+    console.log(allNFTs);
   };
 
   const handleButtonClick = async () => {
