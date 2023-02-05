@@ -1,52 +1,39 @@
-import { useState, useEffect } from "react";
-import styles from "./App.module.css";
-import Button from "./components/Button/button";
-import Image from "./components/Image/image";
-import LoadingSpinner from "./components/LoadingSpinner/loadingSpinner";
 import {
-  Metaplex,
-  keypairIdentity,
-  divideAmount,
-  Nft,
-  Sft,
-  BundlrStorageDriver,
   bundlrStorage,
+  keypairIdentity,
+  Metaplex,
+  Nft,
+  toMetaplexFile,
 } from "@metaplex-foundation/js";
+import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import {
-  Keypair,
-  clusterApiUrl,
-  Connection,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  Transaction,
-} from "@solana/web3.js";
-import { Program, AnchorProvider, web3, Idl } from "@project-serum/anchor";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
-import {
+  ConnectionProvider,
   useWallet,
   WalletProvider,
-  ConnectionProvider,
 } from "@solana/wallet-adapter-react";
-import {
-  WalletAdapterNetwork,
-  WalletNotConnectedError,
-} from "@solana/wallet-adapter-base";
 import {
   WalletModalProvider,
   WalletMultiButton,
 } from "@solana/wallet-adapter-react-ui";
-import { getImageUrl, getVariation } from "./services/images.services";
-import secret from "./devnet.json";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { useEffect, useState } from "react";
+import styles from "./App.module.css";
+import Button from "./components/Button/button";
+import Image from "./components/Image/image";
 import ImageGrid from "./components/ImageGrid/imageGrid";
+import LoadingSpinner from "./components/LoadingSpinner/loadingSpinner";
+import secret from "./devnet.json";
+import { getImageUrl, getVariation } from "./services/images.services";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 const network = WalletAdapterNetwork.Devnet;
-
 const endpoint = clusterApiUrl(network);
 const wallets = [new PhantomWalletAdapter()];
 const WALLET = Keypair.fromSecretKey(new Uint8Array(secret));
 
 const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+
 const metaplex = new Metaplex(connection);
 metaplex.use(keypairIdentity(WALLET));
 metaplex.use(
@@ -56,6 +43,8 @@ metaplex.use(
     timeout: 60000,
   })
 );
+
+const COLLECTIONADDRESS = "3giiZPDeHYLwLzXbRrJpixF6k61zALoSvR5gRjFq4UP9";
 
 const CONFIG = {
   imgType: "image/png",
@@ -67,54 +56,46 @@ const CONFIG = {
     { trait_type: "Background", value: "QuickNode Blue 2" },
   ],
 };
+
 function App() {
   const wallet = useWallet();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [walletpub, setwalletpub] = useState<String>();
+  const [walletPub, setWalletPub] = useState<PublicKey | null>(null);
+  //TODO fix any
   const [selectedNFT, setSelectedNFT] = useState<{ nft: any; url: string }>();
   const [collectionNFTs, setCollectionNFTs] = useState<Nft[]>([]);
 
   useEffect(() => {
     if ((wallet as any).connected) {
-      setwalletpub(wallet.publicKey?.toString());
+      setWalletPub(wallet.publicKey);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet]);
 
   useEffect(() => {
     const startFindNft = async () => {
-      if (walletpub) {
+      if (walletPub) {
         await findNft();
       }
     };
     startFindNft();
-  }, [walletpub]);
+  }, [walletPub]);
 
   const findNft = async () => {
-    const owner = new PublicKey(walletpub as String);
-    const COLLECTIONADDRESS = "3giiZPDeHYLwLzXbRrJpixF6k61zALoSvR5gRjFq4UP9";
-    const MINTADDRESS = "CkUVLwrxFnMhKYkPoni5VNKum1WUBJ1aHjYspxQG3fdq";
+    if (!walletPub) {
+      return;
+    }
 
-    const myNfts = await metaplex.nfts().findAllByOwner({
-      owner: metaplex.identity().publicKey,
-    });
+    const owner = walletPub;
 
     const allNFTs = await metaplex.nfts().findAllByOwner({ owner });
-    console.log(allNFTs)
-     const collectionNFTs: any = allNFTs.filter(
-       (nft) => nft.collection?.address.toString() === COLLECTIONADDRESS
-     );
-
-     console.log(collectionNFTs[0])
-    
-   // const collectionNFTs: any = allNFTs.filter((nft) => {
-    //  return nft.address.toString() === MINTADDRESS;
-    // });
+    const collectionNFTs: any = allNFTs.filter(
+      (nft) => nft.collection?.address.toString() === COLLECTIONADDRESS
+    );
 
     //handle what to do if found
     if (collectionNFTs.length > 0) {
       const url = await getImageUrl(collectionNFTs[0]);
-      //test
       setSelectedNFT({ nft: collectionNFTs[0], url });
       setCollectionNFTs(collectionNFTs);
     }
@@ -148,30 +129,29 @@ function App() {
   const handleButtonClick = async () => {
     setIsLoading(true);
     if (selectedNFT?.url) {
-      const newImageUrl = await getVariation(selectedNFT.url);
-      console.log(newImageUrl)
-      //const mintAddress = new PublicKey("CkUVLwrxFnMhKYkPoni5VNKum1WUBJ1aHjYspxQG3fdq");
-      const test = selectedNFT?.nft.mintAddress.toString()
-      const mintAddress = new PublicKey(test)
-      console.log(selectedNFT.nft)
-      const nfttest = await metaplex.nfts().findByMint({ mintAddress });
-      console.log(nfttest.json);
+      const newImageFile = await getVariation(selectedNFT.url);
+      console.log(newImageFile, "newImageFile");
 
-      setSelectedNFT({ nft: nfttest, url: newImageUrl });
+      const test = selectedNFT?.nft.mintAddress.toString();
+      const mintAddress = new PublicKey(test);
+      const nfttest = await metaplex.nfts().findByMint({ mintAddress });
+      let uri;
       setIsLoading(false);
-      console.log("Upload Metadata.")
-      const { uri } = await metaplex.nfts().uploadMetadata({
-        ...selectedNFT.nft.json,
-        name: "GIGBSBSF",
-        description: "My Updated Metadata Description",
-        image: newImageUrl,
-        files:
-        [{
-          uri:newImageUrl,
-          type:"image/png"}]
-      });
-      console.log("done")
-      console.log("Update NFT")
+      try {
+        // TODO FAILING HERE BECAUS SIZE IS NOT AN INTEGER
+        const metadata = await metaplex.nfts().uploadMetadata({
+          ...selectedNFT.nft.json,
+          name: "GIGBSBSF",
+          description: "My Updated Metadata Description",
+          image: newImageFile,
+        });
+        uri = metadata.uri;
+      } catch (err) {
+        console.log(err, "failed bro");
+      }
+
+      console.log(uri, "this is the new metadatas");
+
       const updatedNft = await metaplex.nfts().update({
         nftOrSft: nfttest,
         uri,
@@ -202,8 +182,6 @@ function App() {
     description: string,
     attributes: { trait_type: string; value: string }[]
   ) {
-    console.log(`Step 2 - Uploading New MetaData`);
-
     const { uri } = await metaplex.nfts().uploadMetadata({
       name: nftName,
       description: description,

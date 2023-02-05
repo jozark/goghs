@@ -7,7 +7,7 @@ export async function getImageUrl(nft: Nft): Promise<string> {
   return data.image;
 }
 
-export async function getVariation(url: string): Promise<string> {
+export async function getVariation(url: string): Promise<any> {
   const response = await fetch("http://localhost:3001/api/getImage", {
     method: "POST",
     headers: {
@@ -18,6 +18,6 @@ export async function getVariation(url: string): Promise<string> {
     }),
   });
 
-  const data = await response.json();
-  return data;
+  const { file } = await response.json();
+  return file;
 }
