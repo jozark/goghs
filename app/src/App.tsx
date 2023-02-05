@@ -71,7 +71,7 @@ function App() {
   const wallet = useWallet();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [walletpub, setwalletpub] = useState<String>();
-  const [selectedNFT, setSelectedNFT] = useState<{ nft: Nft; url: string }>();
+  const [selectedNFT, setSelectedNFT] = useState<{ nft: any; url: string }>();
   const [collectionNFTs, setCollectionNFTs] = useState<Nft[]>([]);
 
   useEffect(() => {
@@ -93,22 +93,23 @@ function App() {
   const findNft = async () => {
     const owner = new PublicKey(walletpub as String);
     const COLLECTIONADDRESS = "3giiZPDeHYLwLzXbRrJpixF6k61zALoSvR5gRjFq4UP9";
-    const MINTADDRESS = "DW1F9Z5CNVsgjRskaJeyw1fhSe7FDsTLiwRB9Mzge7Gr";
+    const MINTADDRESS = "CkUVLwrxFnMhKYkPoni5VNKum1WUBJ1aHjYspxQG3fdq";
 
     const myNfts = await metaplex.nfts().findAllByOwner({
       owner: metaplex.identity().publicKey,
     });
 
     const allNFTs = await metaplex.nfts().findAllByOwner({ owner });
-    // const collectionNFTs: any = allNFTs.filter(
-    //   (nft) => nft.collection?.address.toString() === COLLECTIONADDRESS
-    // );
+    console.log(allNFTs)
+     const collectionNFTs: any = allNFTs.filter(
+       (nft) => nft.collection?.address.toString() === COLLECTIONADDRESS
+     );
 
-    const collectionNFTs: any = allNFTs.filter((nft) => {
-      return nft.address.toString() === MINTADDRESS;
-    });
-
-    console.log(collectionNFTs, "collectrion");
+     console.log(collectionNFTs[0])
+    
+   // const collectionNFTs: any = allNFTs.filter((nft) => {
+    //  return nft.address.toString() === MINTADDRESS;
+    // });
 
     //handle what to do if found
     if (collectionNFTs.length > 0) {
@@ -148,23 +149,37 @@ function App() {
     setIsLoading(true);
     if (selectedNFT?.url) {
       const newImageUrl = await getVariation(selectedNFT.url);
-      setSelectedNFT({ nft: selectedNFT.nft, url: newImageUrl });
+      //const mintAddress = new PublicKey("CkUVLwrxFnMhKYkPoni5VNKum1WUBJ1aHjYspxQG3fdq");
+      const test = selectedNFT?.nft.mintAddress.toString()
+      const mintAddress = new PublicKey(test)
+      console.log(selectedNFT.nft)
+      const nfttest = await metaplex.nfts().findByMint({ mintAddress });
+      console.log(nfttest.json);
+
+      setSelectedNFT({ nft: nfttest, url: newImageUrl });
       setIsLoading(false);
+      console.log("Upload Metadata.")
       const { uri } = await metaplex.nfts().uploadMetadata({
         ...selectedNFT.nft.json,
         name: "GIGBSBSF",
         description: "My Updated Metadata Description",
+        image: newImageUrl,
+        files:
+        [{
+          uri:newImageUrl,
+          type:"image/png"}]
       });
-
+      console.log("done")
+      console.log("Update NFT")
       const updatedNft = await metaplex.nfts().update({
-        nftOrSft: selectedNFT.nft,
+        nftOrSft: nfttest,
         uri,
       });
       console.log(updatedNft, "we did it");
     }
   };
 
-  const handleSelectedClick = (nft: Nft, url: string) => {
+  const handleSelectedClick = (nft: any, url: string) => {
     setSelectedNFT({ nft, url });
   };
 
