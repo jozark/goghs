@@ -45,8 +45,7 @@ const network = WalletAdapterNetwork.Devnet;
 const endpoint = clusterApiUrl(network);
 const wallets = [new PhantomWalletAdapter()];
 const WALLET = Keypair.fromSecretKey(new Uint8Array(secret));
-console.log(WALLET, "did tarek troll me?");
-// const { SystemProgram } = web3;
+
 const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
 const metaplex = new Metaplex(connection);
 metaplex.use(keypairIdentity(WALLET));
@@ -70,7 +69,6 @@ const CONFIG = {
 };
 function App() {
   const wallet = useWallet();
-  const [imageurl, setImageurl] = useState<null | string>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [walletpub, setwalletpub] = useState<String>();
   const [selectedNFT, setSelectedNFT] = useState<{ nft: Nft; url: string }>();
@@ -95,18 +93,55 @@ function App() {
   const findNft = async () => {
     const owner = new PublicKey(walletpub as String);
     const COLLECTIONADDRESS = "3giiZPDeHYLwLzXbRrJpixF6k61zALoSvR5gRjFq4UP9";
+    const MINTADDRESS = "DW1F9Z5CNVsgjRskaJeyw1fhSe7FDsTLiwRB9Mzge7Gr";
+
+    const myNfts = await metaplex.nfts().findAllByOwner({
+      owner: metaplex.identity().publicKey,
+    });
 
     const allNFTs = await metaplex.nfts().findAllByOwner({ owner });
-    const collectionNFTs: any = allNFTs.filter(
-      (nft) => nft.collection?.address.toString() === COLLECTIONADDRESS
-    );
+    // const collectionNFTs: any = allNFTs.filter(
+    //   (nft) => nft.collection?.address.toString() === COLLECTIONADDRESS
+    // );
+
+    const collectionNFTs: any = allNFTs.filter((nft) => {
+      return nft.address.toString() === MINTADDRESS;
+    });
+
+    console.log(collectionNFTs, "collectrion");
+
     //handle what to do if found
     if (collectionNFTs.length > 0) {
       const url = await getImageUrl(collectionNFTs[0]);
-      console.log(collectionNFTs);
+      //test
       setSelectedNFT({ nft: collectionNFTs[0], url });
       setCollectionNFTs(collectionNFTs);
     }
+  };
+
+  const createNft = async () => {
+    const newUri = await updateMetadata(
+      "https://media.discordapp.net/attachments/913148795632631838/1071416205203734579/8304.png?width=685&height=685"
+    );
+    const { nft } = await metaplex.nfts().create({
+      uri: newUri,
+      name: "My NFT",
+      sellerFeeBasisPoints: 500,
+    });
+
+    const { uri } = await metaplex.nfts().uploadMetadata({
+      ...nft.json,
+      name: "TAREK",
+      description: "My Updated Metadata Description",
+    });
+
+    const updatedNft = await metaplex.nfts().update({
+      nftOrSft: nft,
+      uri,
+    });
+    console.log(uri, "this is the uri");
+    console.log(updatedNft, "this is the updated NFT");
+    console.log(nft, "🎉 Hat geklappt atze");
   };
 
   const handleButtonClick = async () => {
@@ -115,16 +150,21 @@ function App() {
       const newImageUrl = await getVariation(selectedNFT.url);
       setSelectedNFT({ nft: selectedNFT.nft, url: newImageUrl });
       setIsLoading(false);
-      const newUri = await updateMetadata(selectedNFT.url);
-      if (selectedNFT) {
-        updateNft(selectedNFT.nft, newUri);
-      }
+      const { uri } = await metaplex.nfts().uploadMetadata({
+        ...selectedNFT.nft.json,
+        name: "GIGBSBSF",
+        description: "My Updated Metadata Description",
+      });
+
+      const updatedNft = await metaplex.nfts().update({
+        nftOrSft: selectedNFT.nft,
+        uri,
+      });
+      console.log(updatedNft, "we did it");
     }
   };
 
   const handleSelectedClick = (nft: Nft, url: string) => {
-    console.log(nft, url, "event test");
-    // console.log("clicked", nft);
     setSelectedNFT({ nft, url });
   };
 
@@ -165,15 +205,6 @@ function App() {
     return uri;
   }
 
-  async function updateNft(nft: Nft | Sft, metadataUri: string) {
-    await metaplex.nfts().update(
-      {
-        nftOrSft: nft,
-        uri: metadataUri,
-      },
-      { commitment: "finalized", confirmOptions: { skipPreflight: true } }
-    );
-  }
   return (
     <div className={styles.app}>
       <header className={styles.header}>
@@ -204,6 +235,9 @@ function App() {
             )}
             <Button type="rectangle" onButtonClick={handleButtonClick}>
               Reimagine
+            </Button>
+            <Button type="rectangle" onButtonClick={createNft}>
+              create me daddy
             </Button>
           </div>
         </div>
