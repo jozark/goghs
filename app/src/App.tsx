@@ -6,6 +6,10 @@ import LoadingSpinner from "./components/LoadingSpinner/loadingSpinner";
 import {
   Metaplex,
   keypairIdentity,
+  divideAmount,
+  Nft,
+  Sft,
+  BundlrStorageDriver,
   bundlrStorage,
 } from "@metaplex-foundation/js";
 import {
@@ -31,94 +35,144 @@ import {
   WalletModalProvider,
   WalletMultiButton,
 } from "@solana/wallet-adapter-react-ui";
+import { getImageUrl, getVariation } from "./services/images.services";
+import secret from "./devnet.json";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 const network = WalletAdapterNetwork.Devnet;
 const endpoint = clusterApiUrl(network);
 const wallets = [new PhantomWalletAdapter()];
-const { SystemProgram } = web3;
+const WALLET = Keypair.fromSecretKey(new Uint8Array(secret));
+console.log(WALLET, "did tarek troll me?");
+// const { SystemProgram } = web3;
+const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+const metaplex = new Metaplex(connection);
+metaplex.use(keypairIdentity(WALLET));
+metaplex.use(
+  bundlrStorage({
+    address: "https://devnet.bundlr.network",
+    providerUrl: "https://api.devnet.solana.com",
+    timeout: 60000,
+  })
+);
 
+const CONFIG = {
+  imgType: "image/png",
+  imgName: "QuickPix New MetaName",
+  description: "New description!",
+  attributes: [
+    { trait_type: "Speed", value: "Quicker" },
+    { trait_type: "Type", value: "Pixelated" },
+    { trait_type: "Background", value: "QuickNode Blue 2" },
+  ],
+};
 function App() {
   const wallet = useWallet();
-  const [imageurl, setImageurl] = useState(
-    "https://media.discordapp.net/attachments/913148795632631838/1071435446627864607/DT1502_cropped2.png"
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const [walletpub, setwalletpub] = useState<String>(
-  );
+  const [imageurl, setImageurl] = useState<null | string>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [walletpub, setwalletpub] = useState<String>();
+  const [selectedNFT, setSelectedNFT] = useState<any>();
 
-  const [givbuttonname, setgivbutton] = useState<String>("Search for Goghs");
   useEffect(() => {
     if ((wallet as any).connected) {
-      console.log("here");
-      setwalletpub(wallet.publicKey?.toString())
+      setwalletpub(wallet.publicKey?.toString());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet]);
 
-  const handleGibNfts = async () => {
-    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-
-    const keypair = Keypair.generate();
-
-    const metaplex = new Metaplex(connection);
-    metaplex.use(keypairIdentity(keypair));
-    console.log(walletpub)
-    const owner = new PublicKey(walletpub as String);
-    const collectionaddress = "DZXXZ1kYS27sayQC2nYTzAhshFcsaxmXAYarYWJXjqAM"
-    const allNFTs = await metaplex.nfts().findAllByOwner({ owner });
-    const collectionNFTs = [];
-
-    // find all nfts that have our collectionaddress
-    for (var i = 0; i < allNFTs.length; i++) {
-      var collectionaddy = allNFTs[i].collection?.address.toString()
-
-      if (collectionaddy == collectionaddress) {
-        collectionNFTs.push(allNFTs[i])
+  useEffect(() => {
+    const startFindNft = async () => {
+      if (walletpub) {
+        await findNft();
       }
+    };
+    startFindNft();
+  }, [walletpub]);
 
-    //handle what to do if found 
+  const findNft = async () => {
+    const owner = new PublicKey(walletpub as String);
+    const COLLECTIONADDRESS = "DZXXZ1kYS27sayQC2nYTzAhshFcsaxmXAYarYWJXjqAM";
+
+    const allNFTs = await metaplex.nfts().findAllByOwner({ owner });
+    const collectionNFTs = allNFTs.filter(
+      (nft) => nft.collection?.address.toString() === COLLECTIONADDRESS
+    );
+
+    //handle what to do if found
     if (collectionNFTs.length > 0) {
+      setSelectedNFT(collectionNFTs[0]);
       const imageuri = collectionNFTs[0].uri;
-      console.log(imageuri);
-      const response = await fetch(imageuri);
-      const data = await response.json();
-      setImageurl(data.image)
-    } else {
-      setgivbutton("NO NFT's FOUND")
+      const url = await getImageUrl(imageuri);
+      setImageurl(url);
     }
-
-    }
-
-    console.log(collectionNFTs)
-    // TODO
-    // check which nfts belongs to our collection
-    // use wallet address from the connected phantom wallet that is available
-    // find the metadata image url for the nfts
-    // display first nft that belongs to us as image
-
-  
   };
 
   const handleButtonClick = async () => {
     setIsLoading(true);
-    const response = await fetch("http://localhost:3001/api/getImage", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        imageurl,
-      }),
-    });
-
-    const data = await response.json();
-    console.log(data);
-    setImageurl(data.image_url);
-    setIsLoading(false);
+    if (imageurl) {
+      setImageurl(await getVariation(imageurl));
+      const newUri = await updateMetadata(imageurl);
+      setIsLoading(false);
+      updateNft(selectedNFT, newUri, CONFIG.imgName);
+    }
   };
 
+  const updateMetadata = async (url: string) => {
+    const uri = uploadMetadata(
+      url,
+      CONFIG.imgType,
+      CONFIG.imgName,
+      CONFIG.description,
+      CONFIG.attributes
+    );
+    return uri;
+  };
+
+  async function uploadMetadata(
+    imgUri: string,
+    imgType: string,
+    nftName: string,
+    description: string,
+    attributes: { trait_type: string; value: string }[]
+  ) {
+    console.log(`Step 2 - Uploading New MetaData`);
+
+    const { uri } = await metaplex.nfts().uploadMetadata({
+      name: nftName,
+      description: description,
+      image: imgUri,
+      attributes: attributes,
+      properties: {
+        files: [
+          {
+            type: imgType,
+            uri: imgUri,
+          },
+        ],
+      },
+    });
+    return uri;
+  }
+
+  async function updateNft(
+    nft: Nft | Sft,
+    metadataUri: string,
+    newName: string
+  ) {
+    console.log(`Step 3 - Updating NFT`);
+    console.log(nft, metadataUri, newName);
+    await metaplex.nfts().update(
+      {
+        name: newName,
+        nftOrSft: nft,
+        uri: metadataUri,
+      },
+      { commitment: "finalized" }
+    );
+    console.log(
+      `   Updated NFT: https://explorer.solana.com/address/${nft.address}?cluster=devnet`
+    );
+  }
   return (
     <div className={styles.app}>
       <header className={styles.header}>
@@ -127,16 +181,20 @@ function App() {
         </a>
         <WalletMultiButton />
       </header>
-
-      <div className={styles.container}>
-        {isLoading ? <LoadingSpinner /> : <Image source={imageurl} alt="" />}
-        <Button type="rectangle" onButtonClick={handleButtonClick}>
-          Reimagine
-        </Button>
-        <Button type="rectangle" onButtonClick={handleGibNfts}>
-          {givbuttonname}
-        </Button>
-      </div>
+      {!(wallet as any).connected ? (
+        <h2>Connecte dein Wallet du Hund 🐶</h2>
+      ) : (
+        <div className={styles.container}>
+          {isLoading || !imageurl ? (
+            <LoadingSpinner />
+          ) : (
+            <Image source={imageurl} alt="" />
+          )}
+          <Button type="rectangle" onButtonClick={handleButtonClick}>
+            Reimagine
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
