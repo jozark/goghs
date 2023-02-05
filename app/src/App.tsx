@@ -37,6 +37,7 @@ import {
 } from "@solana/wallet-adapter-react-ui";
 import { getImageUrl, getVariation } from "./services/images.services";
 import secret from "./devnet.json";
+import ImageGrid from "./components/ImageGrid/imageGrid";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 const network = WalletAdapterNetwork.Devnet;
@@ -71,7 +72,8 @@ function App() {
   const [imageurl, setImageurl] = useState<null | string>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [walletpub, setwalletpub] = useState<String>();
-  const [selectedNFT, setSelectedNFT] = useState<any>();
+  const [selectedNFT, setSelectedNFT] = useState<{ nft: Nft; url: string }>();
+  const [collectionNFTs, setCollectionNFTs] = useState<Nft[]>([]);
 
   useEffect(() => {
     if ((wallet as any).connected) {
@@ -91,30 +93,37 @@ function App() {
 
   const findNft = async () => {
     const owner = new PublicKey(walletpub as String);
-    const COLLECTIONADDRESS = "DZXXZ1kYS27sayQC2nYTzAhshFcsaxmXAYarYWJXjqAM";
+    const COLLECTIONADDRESS = "3giiZPDeHYLwLzXbRrJpixF6k61zALoSvR5gRjFq4UP9";
 
     const allNFTs = await metaplex.nfts().findAllByOwner({ owner });
-    const collectionNFTs = allNFTs.filter(
+    const collectionNFTs: any = allNFTs.filter(
       (nft) => nft.collection?.address.toString() === COLLECTIONADDRESS
     );
-
+    setCollectionNFTs(collectionNFTs);
     //handle what to do if found
     if (collectionNFTs.length > 0) {
-      setSelectedNFT(collectionNFTs[0]);
-      const imageuri = collectionNFTs[0].uri;
-      const url = await getImageUrl(imageuri);
-      setImageurl(url);
+      const url = await getImageUrl(collectionNFTs[0]);
+      setSelectedNFT({ nft: collectionNFTs[0], url });
     }
   };
 
   const handleButtonClick = async () => {
     setIsLoading(true);
-    if (imageurl) {
-      setImageurl(await getVariation(imageurl));
+    if (selectedNFT?.url) {
+      const newImageUrl = await getVariation(selectedNFT.url);
+      setSelectedNFT({ nft: selectedNFT.nft, url: newImageUrl });
       setIsLoading(false);
-      const newUri = await updateMetadata(imageurl);
-      updateNft(selectedNFT, newUri, CONFIG.imgName);
+      const newUri = await updateMetadata(selectedNFT.url);
+      if (selectedNFT) {
+        updateNft(selectedNFT.nft, newUri, CONFIG.imgName);
+      }
     }
+  };
+
+  const handleSelectedClick = (nft: Nft, url: string) => {
+    console.log(nft, url, "event test");
+    // console.log("clicked", nft);
+    setSelectedNFT({ nft, url });
   };
 
   const updateMetadata = async (url: string) => {
@@ -159,18 +168,13 @@ function App() {
     metadataUri: string,
     newName: string
   ) {
-    console.log(`Step 3 - Updating NFT`);
-    console.log(nft, metadataUri, newName);
     await metaplex.nfts().update(
       {
         name: newName,
         nftOrSft: nft,
         uri: metadataUri,
       },
-      { commitment: "finalized" }
-    );
-    console.log(
-      `   Updated NFT: https://explorer.solana.com/address/${nft.address}?cluster=devnet`
+      { commitment: "finalized", confirmOptions: { skipPreflight: true } }
     );
   }
   return (
@@ -185,14 +189,22 @@ function App() {
         <h2>Connecte dein Wallet du Hund 🐶</h2>
       ) : (
         <div className={styles.container}>
-          {isLoading || !imageurl ? (
+          {isLoading || !selectedNFT ? (
             <LoadingSpinner />
           ) : (
-            <Image source={imageurl} alt="" />
+            <>
+              <Image source={selectedNFT?.url || ""} alt="" />
+              <div>{selectedNFT?.nft?.name || "not available"}</div>
+            </>
           )}
           <Button type="rectangle" onButtonClick={handleButtonClick}>
             Reimagine
           </Button>
+          <ImageGrid
+            nfts={collectionNFTs}
+            selectedImage={selectedNFT?.nft}
+            selectImage={(nft, url) => handleSelectedClick(nft, url)}
+          />
         </div>
       )}
     </div>

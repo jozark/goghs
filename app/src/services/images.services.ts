@@ -1,6 +1,8 @@
-export async function getImageUrl(url: string): Promise<string> {
+import { Nft } from "@metaplex-foundation/js";
+
+export async function getImageUrl(nft: Nft): Promise<string> {
   //todo error handling
-  const response = await fetch(url);
+  const response = await fetch(nft.uri);
   const data = await response.json();
   return data.image;
 }
