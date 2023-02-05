@@ -111,8 +111,8 @@ function App() {
     setIsLoading(true);
     if (imageurl) {
       setImageurl(await getVariation(imageurl));
-      const newUri = await updateMetadata(imageurl);
       setIsLoading(false);
+      const newUri = await updateMetadata(imageurl);
       updateNft(selectedNFT, newUri, CONFIG.imgName);
     }
   };
