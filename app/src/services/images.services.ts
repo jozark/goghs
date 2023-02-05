@@ -19,5 +19,5 @@ export async function getVariation(url: string): Promise<string> {
   });
 
   const data = await response.json();
-  return data.image_url;
+  return data;
 }

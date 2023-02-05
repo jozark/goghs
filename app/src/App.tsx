@@ -149,6 +149,7 @@ function App() {
     setIsLoading(true);
     if (selectedNFT?.url) {
       const newImageUrl = await getVariation(selectedNFT.url);
+      console.log(newImageUrl)
       //const mintAddress = new PublicKey("CkUVLwrxFnMhKYkPoni5VNKum1WUBJ1aHjYspxQG3fdq");
       const test = selectedNFT?.nft.mintAddress.toString()
       const mintAddress = new PublicKey(test)
