@@ -32,7 +32,11 @@ const ImageGrid = ({ nfts, selectedImage, selectImage }: ImageGridProps) => {
           <div
             key={image}
             className={styles.nft}
-            style={{ border: "1px solid black" }}
+            style={{
+              border: `${
+                nft === selectedImage ? "3px solid red" : "1px solid black"
+              }`,
+            }}
           >
             <img src={image} alt="" onClick={() => selectImage(nft, image)} />
             <p>{nft.name}</p>

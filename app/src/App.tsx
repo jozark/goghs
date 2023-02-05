@@ -41,6 +41,7 @@ import ImageGrid from "./components/ImageGrid/imageGrid";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 const network = WalletAdapterNetwork.Devnet;
+
 const endpoint = clusterApiUrl(network);
 const wallets = [new PhantomWalletAdapter()];
 const WALLET = Keypair.fromSecretKey(new Uint8Array(secret));
@@ -99,11 +100,12 @@ function App() {
     const collectionNFTs: any = allNFTs.filter(
       (nft) => nft.collection?.address.toString() === COLLECTIONADDRESS
     );
-    setCollectionNFTs(collectionNFTs);
     //handle what to do if found
     if (collectionNFTs.length > 0) {
       const url = await getImageUrl(collectionNFTs[0]);
+      console.log(collectionNFTs);
       setSelectedNFT({ nft: collectionNFTs[0], url });
+      setCollectionNFTs(collectionNFTs);
     }
   };
 
@@ -115,7 +117,7 @@ function App() {
       setIsLoading(false);
       const newUri = await updateMetadata(selectedNFT.url);
       if (selectedNFT) {
-        updateNft(selectedNFT.nft, newUri, CONFIG.imgName);
+        updateNft(selectedNFT.nft, newUri);
       }
     }
   };
@@ -163,14 +165,9 @@ function App() {
     return uri;
   }
 
-  async function updateNft(
-    nft: Nft | Sft,
-    metadataUri: string,
-    newName: string
-  ) {
+  async function updateNft(nft: Nft | Sft, metadataUri: string) {
     await metaplex.nfts().update(
       {
-        name: newName,
         nftOrSft: nft,
         uri: metadataUri,
       },
@@ -188,23 +185,27 @@ function App() {
       {!(wallet as any).connected ? (
         <h2>Connecte dein Wallet du Hund 🐶</h2>
       ) : (
-        <div className={styles.container}>
-          {isLoading || !selectedNFT ? (
-            <LoadingSpinner />
-          ) : (
-            <>
-              <Image source={selectedNFT?.url || ""} alt="" />
-              <div>{selectedNFT?.nft?.name || "not available"}</div>
-            </>
-          )}
-          <Button type="rectangle" onButtonClick={handleButtonClick}>
-            Reimagine
-          </Button>
-          <ImageGrid
-            nfts={collectionNFTs}
-            selectedImage={selectedNFT?.nft}
-            selectImage={(nft, url) => handleSelectedClick(nft, url)}
-          />
+        <div className={styles.wrapper}>
+          <div className={styles.collectionWrapper}>
+            <ImageGrid
+              nfts={collectionNFTs}
+              selectedImage={selectedNFT?.nft}
+              selectImage={(nft, url) => handleSelectedClick(nft, url)}
+            />
+          </div>
+          <div className={styles.container}>
+            {isLoading || !selectedNFT ? (
+              <LoadingSpinner />
+            ) : (
+              <>
+                <Image source={selectedNFT?.url || ""} alt="" />
+                <div>{selectedNFT?.nft?.name || "not available"}</div>
+              </>
+            )}
+            <Button type="rectangle" onButtonClick={handleButtonClick}>
+              Reimagine
+            </Button>
+          </div>
         </div>
       )}
     </div>
