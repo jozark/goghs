@@ -26,21 +26,23 @@ import Button from "./components/Button/button";
 import Image from "./components/Image/image";
 import ImageGrid from "./components/ImageGrid/imageGrid";
 import LoadingSpinner from "./components/LoadingSpinner/loadingSpinner";
-import { getImageUrl, requestVariationAndMetadataUpdate } from "./services/images.services";
+import {
+  getImageUrl,
+  requestVariationAndMetadataUpdate,
+} from "./services/images.services";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 // ========================================================================================================
-const COLLECTIONADDRESS = "7bXLxXTJetDZsdTo5v8zijAP2BKGL6Rnrj7BGBQucmXi";
+const COLLECTIONADDRESS = "ByQ8WvACSDQpTRqULkHEJHUB3cbU6jtyHH7qPrsJdvbx";
 const REFRESH_STATE_ON_PAGE_RELOAD = true;
 const NETWORK_TYPE = WalletAdapterNetwork.Devnet;
 
-
 // ========================================================================================================
 
-type MetaDataOrNft = (Metadata<JsonMetadata<string>> | Nft | Sft);
+type MetaDataOrNft = Metadata<JsonMetadata<string>> | Nft | Sft;
 interface NftWithUrl {
-  nft: MetaDataOrNft,
-  url: string,
+  nft: MetaDataOrNft;
+  url: string;
 }
 
 // phantom wallet adapter
@@ -50,7 +52,6 @@ const wallets = [new PhantomWalletAdapter()];
 const endpoint = clusterApiUrl(NETWORK_TYPE);
 const connection = new Connection(endpoint, "confirmed");
 const metaplex = new Metaplex(connection);
-
 
 function App() {
   const wallet = useWallet();
@@ -73,49 +74,52 @@ function App() {
   const getCollectionNfts = async (): Promise<Array<MetaDataOrNft>> => {
     assert(walletPub);
 
-    const allNfts: FindNftsByOwnerOutput = await metaplex.nfts().findAllByOwner({ owner: walletPub });
+    const allNfts: FindNftsByOwnerOutput = await metaplex
+      .nfts()
+      .findAllByOwner({ owner: walletPub });
     return allNfts.filter(
-      (nft: MetaDataOrNft) => nft.collection?.address.toString() === COLLECTIONADDRESS
+      (nft: MetaDataOrNft) =>
+        nft.collection?.address.toString() === COLLECTIONADDRESS
     );
-  }
+  };
 
   /// If we have a wallet connected, get NFTs from our collection and select first
-  const fetchCollectionAndSetSelected = () => {
+  const fetchCollectionAndSetSelected = async () => {
     if (!walletPub) return;
 
-    // note: must define async function in here, since effect itself may not be async
-    // _____ are then only allowed to use data inside that function
-    const setNftsAndSelected = async () => {
-      const collectionNfts = await getCollectionNfts();
-      // TODO handle what to do if no collection nft found
-      if (collectionNfts.length > 0) {
-        // cast to nfts
-        const nfts = collectionNfts as Nft[];
+    const collectionNfts = await getCollectionNfts();
+    // TODO handle what to do if no collection nft found
+    if (collectionNfts.length > 0) {
+      // cast to nfts
+      const nfts = collectionNfts as Nft[];
 
-        setCollectionNFTs(nfts);
+      setCollectionNFTs(nfts);
 
-        let _selectedNft;
-        if (!selectedNFT) {
-          _selectedNft = collectionNfts[0];
-        } else {
-          _selectedNft = nfts.find((nft) => nft.address.toString() == selectedNFT.nft.address.toString());
-        }
-        if (!_selectedNft) return;
-        const url = await getImageUrl(_selectedNft as Nft);
-        console.log(url, "url")
-        setSelectedNFT({ nft: _selectedNft, url });
+      let _selectedNft;
+      if (!selectedNFT) {
+        _selectedNft = collectionNfts[0];
+      } else {
+        _selectedNft = nfts.find(
+          (nft) => nft.address.toString() == selectedNFT.nft.address.toString()
+        );
       }
-    };
-    setNftsAndSelected();
-  }
+      if (!_selectedNft) return;
+      const url = await getImageUrl(_selectedNft as Nft);
+      console.log(url, "url");
+      setSelectedNFT({ nft: _selectedNft, url });
+    }
+  };
 
   // Reload on page refresh // TODO this is mainly for development, not sure if we need this in PROD
   if (REFRESH_STATE_ON_PAGE_RELOAD) {
-    useEffect(fetchCollectionAndSetSelected, []);
+    useEffect(() => {
+      fetchCollectionAndSetSelected();
+    }, []);
   }
   // Reload once the wallet is connected (or disconnected, but we exit early in that case)
-  useEffect(fetchCollectionAndSetSelected, [walletPub]);
-
+  useEffect(() => {
+    fetchCollectionAndSetSelected();
+  }, [walletPub]);
 
   // This functionality should be placed in the backend
   // Pass mintAddress to backend, only receive confirmation
@@ -125,17 +129,18 @@ function App() {
 
     setIsLoading(true);
 
-    const mintAddress = new PublicKey((selectedNFT?.nft as Metadata).mintAddress.toString());
+    const mintAddress = new PublicKey(
+      (selectedNFT?.nft as Metadata).mintAddress.toString()
+    );
 
     // TODO move this into a service again
     const success = await requestVariationAndMetadataUpdate(mintAddress);
 
-    setIsLoading(false);
-
     if (!success) return; // TODO maybe show a small error snackbar?
 
     // TODO not sure if we need this
-    fetchCollectionAndSetSelected();
+    await fetchCollectionAndSetSelected();
+    setIsLoading(false);
   };
 
   const handleSelectedClick = (nftWithUrl: NftWithUrl) => {
@@ -150,14 +155,14 @@ function App() {
         </a>
         <WalletMultiButton />
       </header>
-      {!(wallet).connected ? (
+      {!wallet.connected ? (
         <h2>Connecte dein Wallet du Hund 🐶</h2>
       ) : (
         <div className={styles.container}>
           <div className={styles.collectionNfts}>
             <ImageGrid
               nfts={collectionNFTs}
-              selectedImage={selectedNFT?.nft as (Nft | undefined)}
+              selectedImage={selectedNFT?.nft as Nft | undefined}
               selectImage={(nft, url) => handleSelectedClick({ nft, url })}
             />
           </div>
