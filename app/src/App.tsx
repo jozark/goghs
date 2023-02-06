@@ -80,7 +80,7 @@ function App() {
   };
 
   /// If we have a wallet connected, get NFTs from our collection and select first
-  const fetchCollectionAndSetSelected = async () => {
+  const fetchCollectionAndSetSelected = async (nftWithUrl: NftWithUrl | null) => {
     if (!walletPub) return;
 
     const collectionNfts = await getCollectionNfts();
@@ -102,15 +102,24 @@ function App() {
       setCollectionNFTs(collectionNftsWithImages);
 
       let _selectedNft;
-      if (!selectedNFT) {
-        _selectedNft = collectionNfts[0];
+      if (nftWithUrl) {
+        _selectedNft = nftWithUrl.nft;
+        setSelectedNFT(nftWithUrl);
       } else {
-        _selectedNft = nfts.find(
-          (nft) => nft.address.toString() == selectedNFT.nft.address.toString()
-        );
+
+
+        if (!selectedNFT) {
+          _selectedNft = collectionNfts[0];
+        } else {
+          _selectedNft = nfts.find(
+            (nft) => nft.address.toString() == selectedNFT.nft.address.toString()
+          );
+        }
+        if (!_selectedNft) return;
+        const url = await getImageUrl(_selectedNft as Nft);
+
+        setSelectedNFT({ nft: _selectedNft, url });
       }
-      if (!_selectedNft) return;
-      const url = await getImageUrl(_selectedNft as Nft);
 
 
 
@@ -119,19 +128,19 @@ function App() {
         .findByMint({ mintAddress: new PublicKey((_selectedNft as Metadata).mintAddress.toString()) });
 
       setSelectedMetadata(metdata as NftWithToken)
-      setSelectedNFT({ nft: _selectedNft, url });
+
     }
   };
 
   // Reload on page refresh // TODO this is mainly for development, not sure if we need this in PROD
   if (REFRESH_STATE_ON_PAGE_RELOAD) {
     useEffect(() => {
-      fetchCollectionAndSetSelected();
+      fetchCollectionAndSetSelected(null);
     }, []);
   }
   // Reload once the wallet is connected (or disconnected, but we exit early in that case)
   useEffect(() => {
-    fetchCollectionAndSetSelected();
+    fetchCollectionAndSetSelected(null);
   }, [walletPub]);
 
   const handleAlterImageClick = async (endpoint: string) => {
@@ -151,13 +160,12 @@ function App() {
     if (!success) return; // TODO maybe show a small error snackbar?
 
     // TODO not sure if we need this
-    await fetchCollectionAndSetSelected();
+    await fetchCollectionAndSetSelected(null);
     setIsLoading(false);
   };
 
   const handleSelectedClick = (nftWithUrl: NftWithUrl) => {
-    setSelectedNFT(nftWithUrl);
-    fetchCollectionAndSetSelected()
+    fetchCollectionAndSetSelected(nftWithUrl)
   };
 
   return (
