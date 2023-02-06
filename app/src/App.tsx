@@ -110,7 +110,7 @@ function App() {
         if (!_selectedNft) return;
         const url = await getImageUrl(_selectedNft as Nft);
         console.log(url, "url")
-        setSelectedNFT({ nft: collectionNfts[0], url });
+        setSelectedNFT({ nft: _selectedNft, url });
       }
     };
     setNftsAndSelected();
