@@ -54,7 +54,9 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [walletPub, setWalletPub] = useState<PublicKey | null>(null);
   const [selectedNFT, setSelectedNFT] = useState<NftWithUrl | null>();
-  const [selectedMetadata, setSelectedMetadata] = useState<NftWithToken | null | undefined>();
+  const [selectedMetadata, setSelectedMetadata] = useState<
+    NftWithToken | null | undefined
+  >();
   const [collectionNFTs, setCollectionNFTs] = useState<NftWithUrl[]>([]);
 
   // set publicKey as state as soon as client connects with phantom
@@ -80,7 +82,9 @@ function App() {
   };
 
   /// If we have a wallet connected, get NFTs from our collection and select first
-  const fetchCollectionAndSetSelected = async (nftWithUrl: NftWithUrl | null) => {
+  const fetchCollectionAndSetSelected = async (
+    nftWithUrl: NftWithUrl | null
+  ) => {
     if (!walletPub) return;
 
     const collectionNfts = await getCollectionNfts();
@@ -106,13 +110,12 @@ function App() {
         _selectedNft = nftWithUrl.nft;
         setSelectedNFT(nftWithUrl);
       } else {
-
-
         if (!selectedNFT) {
           _selectedNft = collectionNfts[0];
         } else {
           _selectedNft = nfts.find(
-            (nft) => nft.address.toString() == selectedNFT.nft.address.toString()
+            (nft) =>
+              nft.address.toString() == selectedNFT.nft.address.toString()
           );
         }
         if (!_selectedNft) return;
@@ -121,14 +124,13 @@ function App() {
         setSelectedNFT({ nft: _selectedNft, url });
       }
 
+      const metdata = await metaplex.nfts().findByMint({
+        mintAddress: new PublicKey(
+          (_selectedNft as Metadata).mintAddress.toString()
+        ),
+      });
 
-
-      const metdata = await metaplex
-        .nfts()
-        .findByMint({ mintAddress: new PublicKey((_selectedNft as Metadata).mintAddress.toString()) });
-
-      setSelectedMetadata(metdata as NftWithToken)
-
+      setSelectedMetadata(metdata as NftWithToken);
     }
   };
 
@@ -156,7 +158,7 @@ function App() {
     const success = await requestVariationAndMetadataUpdate(
       mintAddress,
       endpoint,
-      evolution,
+      evolution
     );
 
     if (!success) return; // TODO maybe show a small error snackbar?
@@ -167,7 +169,7 @@ function App() {
   };
 
   const handleSelectedClick = (nftWithUrl: NftWithUrl) => {
-    fetchCollectionAndSetSelected(nftWithUrl)
+    fetchCollectionAndSetSelected(nftWithUrl);
   };
 
   return (
@@ -182,26 +184,28 @@ function App() {
         <h2>Connecte dein Wallet du Hund 🐶</h2>
       ) : (
         <div className={styles.container}>
-          <div className={styles.collectionNfts}>
-            <div><h2>Wallet</h2></div>
-            <ImageGrid
-              nftsWithUrl={collectionNFTs}
-              selectedNft={selectedNFT?.nft as Nft | undefined}
-              selectNft={(nft) => handleSelectedClick(nft)}
-            />
+          <div>
+            <h2 className={styles.mb1p5}>Wallet</h2>
+            <div className={styles.collectionNfts}>
+              <ImageGrid
+                nftsWithUrl={collectionNFTs}
+                selectedNft={selectedNFT?.nft as Nft | undefined}
+                selectNft={(nft) => handleSelectedClick(nft)}
+              />
+            </div>
           </div>
 
           <div className={styles.selectedNft}>
-            <div><h2>{selectedNFT?.nft?.name}</h2></div>
+            <div>
+              <h2>{selectedNFT?.nft?.name}</h2>
+            </div>
 
             {isLoading || !selectedNFT ? (
               <LoadingSpinner />
             ) : (
               <>
                 <Image source={selectedNFT?.url} alt="" />
-
               </>
-
             )}
 
             <div className={styles.buttonsContainer}>
@@ -211,16 +215,19 @@ function App() {
               >
                 Reimagine
               </Button>
-
             </div>
           </div>
 
-          <div className={styles.collectionNfts}>
-            <h2>History</h2>
-            <HistoryGrid
-              nftWithToken={selectedMetadata as NftWithToken | undefined}
-              onChooseEvolution={(i) => handleAlterImageClick("api/resetImage", i)}
-            />
+          <div>
+            <h2 className={styles.mb1p5}>History</h2>
+            <div className={styles.collectionNfts}>
+              <HistoryGrid
+                nftWithToken={selectedMetadata as NftWithToken | undefined}
+                onChooseEvolution={(i) =>
+                  handleAlterImageClick("api/resetImage", i)
+                }
+              />
+            </div>
           </div>
         </div>
       )}

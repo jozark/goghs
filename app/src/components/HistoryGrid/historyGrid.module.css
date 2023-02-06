@@ -1,17 +1,16 @@
 .container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    max-width: 300px;
-    gap: 0.5rem;
-    margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  max-width: 300px;
+  gap: 0.5rem;
 }
 
 .headerwrapper {
-    width: 100%;
+  width: 100%;
 }
 
 .nft:hover {
-    cursor: pointer;
-    transform: scale(1.1);
-    transition: transform 0.2s ease-in-out;
+  cursor: pointer;
+  transform: scale(1.1);
+  transition: transform 0.2s ease-in-out;
 }
