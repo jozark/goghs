@@ -1,4 +1,4 @@
-import { Nft } from "@metaplex-foundation/js";
+import { Nft, PublicKey } from "@metaplex-foundation/js";
 
 export async function getImageUrl(nft: Nft): Promise<string> {
   //todo error handling
@@ -7,17 +7,16 @@ export async function getImageUrl(nft: Nft): Promise<string> {
   return data.image;
 }
 
-export async function getVariation(url: string): Promise<any> {
+/// returns true if successfull
+export async function requestVariationAndMetadataUpdate(mintAddress: PublicKey): Promise<boolean> {
   const response = await fetch("http://localhost:3001/api/getImage", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      imageurl: url,
+      mintAddress: mintAddress,
     }),
   });
-
-  const { file } = await response.json();
-  return file;
+  return response.status == 200;
 }

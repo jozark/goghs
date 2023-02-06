@@ -1,8 +1,6 @@
 import {
-  bundlrStorage,
   FindNftsByOwnerOutput,
   JsonMetadata,
-  keypairIdentity,
   Metadata,
   Metaplex,
   Nft,
@@ -20,7 +18,7 @@ import {
   WalletMultiButton,
 } from "@solana/wallet-adapter-react-ui";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
-import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 import assert from "assert";
 import { useEffect, useState } from "react";
 import styles from "./App.module.css";
@@ -28,13 +26,13 @@ import Button from "./components/Button/button";
 import Image from "./components/Image/image";
 import ImageGrid from "./components/ImageGrid/imageGrid";
 import LoadingSpinner from "./components/LoadingSpinner/loadingSpinner";
-import secret from "./devnet.json";
-import { getImageUrl, getVariation } from "./services/images.services";
+import { getImageUrl, requestVariationAndMetadataUpdate } from "./services/images.services";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 // ========================================================================================================
 const COLLECTIONADDRESS = "3giiZPDeHYLwLzXbRrJpixF6k61zALoSvR5gRjFq4UP9";
 const REFRESH_STATE_ON_PAGE_RELOAD = true;
+const NETWORK_TYPE = WalletAdapterNetwork.Devnet;
 
 
 // ========================================================================================================
@@ -45,24 +43,20 @@ interface NftWithUrl {
   url: string,
 }
 
+// phantom wallet adapter
+const wallets = [new PhantomWalletAdapter()];
 
 // set up connection to chain
-const network = WalletAdapterNetwork.Devnet;
-const endpoint = clusterApiUrl(network);
-const wallets = [new PhantomWalletAdapter()];
-const WALLET = Keypair.fromSecretKey(new Uint8Array(secret));
-
-const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-
+const endpoint = clusterApiUrl(NETWORK_TYPE);
+const connection = new Connection(endpoint, "confirmed");
 const metaplex = new Metaplex(connection);
-metaplex.use(keypairIdentity(WALLET));
-metaplex.use(
-  bundlrStorage({
-    address: "https://devnet.bundlr.network",
-    providerUrl: "https://api.devnet.solana.com",
-    timeout: 60000,
-  })
-);
+// metaplex.use(
+//   bundlrStorage({
+//     address: "https://devnet.bundlr.network",
+//     providerUrl: "https://api.devnet.solana.com",
+//     timeout: 60000,
+//   })
+// );
 
 
 function App() {
@@ -70,7 +64,7 @@ function App() {
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [walletPub, setWalletPub] = useState<PublicKey | null>(null);
-  const [selectedNFT, setSelectedNFT] = useState<NftWithUrl>();
+  const [selectedNFT, setSelectedNFT] = useState<NftWithUrl | null>();
   const [collectionNFTs, setCollectionNFTs] = useState<Nft[]>([]);
 
   // set publicKey as state as soon as client connects with phantom
@@ -93,7 +87,7 @@ function App() {
   }
 
   /// If we have a wallet connected, get NFTs from our collection and select first
-  const setCollectionAndSelected = () => {
+  const fetchCollectionAndSetSelected = () => {
     if (!walletPub) return;
 
     // note: must define async function in here, since effect itself may not be async
@@ -107,7 +101,10 @@ function App() {
 
         setCollectionNFTs(nfts);
         const url = await getImageUrl(nfts[0]);
-        setSelectedNFT({ nft: collectionNfts[0], url });
+        if (!selectedNFT) {
+          setSelectedNFT({ nft: collectionNfts[0], url });
+        }
+
       }
     };
     setNftsAndSelected();
@@ -115,57 +112,31 @@ function App() {
 
   // Reload on page refresh // TODO this is mainly for development, not sure if we need this in PROD
   if (REFRESH_STATE_ON_PAGE_RELOAD) {
-    useEffect(setCollectionAndSelected, []);
+    useEffect(fetchCollectionAndSetSelected, []);
   }
   // Reload once the wallet is connected (or disconnected, but we exit early in that case)
-  useEffect(setCollectionAndSelected, [walletPub]);
+  useEffect(fetchCollectionAndSetSelected, [walletPub]);
 
 
   // This functionality should be placed in the backend
   // Pass mintAddress to backend, only receive confirmation
   // fetch nft again after confirmation with `findByMint({mintAdress})`
   const handleGetVariationClick = async () => {
-    if (!selectedNFT?.url) {
-      return;
-    }
+    if (!selectedNFT?.url) return;
 
     setIsLoading(true);
 
-    // get image url from backend
-    const newImageFile = await getVariation(selectedNFT.url);
-    console.log(newImageFile, "newImageFile");
-
-    // get type=NftWithToken from the selectedNft // TODO why can we assume metadata here
     const mintAddress = new PublicKey((selectedNFT?.nft as Metadata).mintAddress.toString());
-    const nftWithToken = await metaplex.nfts().findByMint({ mintAddress });
 
-    // TEST: Try to upload image this way
-    // const imageUri = await metaplex.storage().upload(newImageFile);
+    // TODO move this into a service again
+    const success = await requestVariationAndMetadataUpdate(mintAddress);
 
     setIsLoading(false);
 
-    try {
-      // TODO FAILING HERE BECAUSE of the image: newImageFile
-      console.log("Trying to upload the Metadata");
+    if (!success) return; // TODO maybe show a small error snackbar?
 
-      const { uri } = await metaplex.nfts().uploadMetadata({
-        ...selectedNFT.nft.json,
-        name: "Test",
-        description: "My Updated Metadata Description",
-        image: newImageFile,
-      });
-
-      console.log("Metadata uploaded. Trying to update NFT");
-
-      const updatedNft = await metaplex.nfts().update({
-        nftOrSft: nftWithToken,
-        uri,
-      });
-
-      console.log("Nft updated.", updatedNft);
-    } catch (err) {
-      console.log(err, "failed bro");
-    }
+    // TODO not sure if we need this
+    fetchCollectionAndSetSelected();
   };
 
   const handleSelectedClick = (nftWithUrl: NftWithUrl) => {
