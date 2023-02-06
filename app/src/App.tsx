@@ -1,6 +1,5 @@
 import {
   bundlrStorage,
-  BundlrStorageDriver,
   keypairIdentity,
   Metaplex,
   Nft,
@@ -60,7 +59,6 @@ function App() {
     if ((wallet as any).connected) {
       setWalletPub(wallet.publicKey);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet]);
 
   useEffect(() => {

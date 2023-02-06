@@ -1,7 +1,6 @@
 import { Nft } from "@metaplex-foundation/js";
 import { useEffect, useState } from "react";
 import { getImageUrl } from "../../services/images.services";
-import LoadingSpinner from "../LoadingSpinner/loadingSpinner";
 import styles from "./imageGrid.module.css";
 
 type ImageGridProps = {
