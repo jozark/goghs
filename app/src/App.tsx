@@ -96,7 +96,7 @@ function App() {
     return provider;
   };
 
-  const getMetaplexConnection = (): Metaplex => {
+  const getMetaplex = (): Metaplex => {
     const connection = new Connection(clusterEndpoint, "confirmed");
     const metaplex = new Metaplex(connection);
     return metaplex;
@@ -138,7 +138,7 @@ function App() {
   const getCollectionNfts = async (): Promise<Array<MetaDataOrNft>> => {
     assert(walletPub);
 
-    const metaplex = getMetaplexConnection();
+    const metaplex = getMetaplex();
     const allNfts: FindNftsByOwnerOutput = await metaplex
       .nfts()
       .findAllByOwner({ owner: walletPub });
@@ -192,7 +192,7 @@ function App() {
         setSelectedNFT({ nft: _selectedNft, url });
       }
 
-      const metaplex = getMetaplexConnection();
+      const metaplex = getMetaplex();
       const metdata = await metaplex.nfts().findByMint({
         mintAddress: new PublicKey(
           (_selectedNft as Metadata).mintAddress.toString()
