@@ -121,10 +121,7 @@ function App() {
     fetchCollectionAndSetSelected();
   }, [walletPub]);
 
-  // This functionality should be placed in the backend
-  // Pass mintAddress to backend, only receive confirmation
-  // fetch nft again after confirmation with `findByMint({mintAdress})`
-  const handleGetVariationClick = async () => {
+  const handleAlterImageClick = async (endpoint: string) => {
     if (!selectedNFT?.url) return;
 
     setIsLoading(true);
@@ -134,7 +131,10 @@ function App() {
     );
 
     // TODO move this into a service again
-    const success = await requestVariationAndMetadataUpdate(mintAddress);
+    const success = await requestVariationAndMetadataUpdate(
+      mintAddress,
+      endpoint
+    );
 
     if (!success) return; // TODO maybe show a small error snackbar?
 
@@ -175,9 +175,20 @@ function App() {
                 <div>{selectedNFT?.nft?.name}</div>
               </>
             )}
-            <Button type="rectangle" onButtonClick={handleGetVariationClick}>
-              Reimagine
-            </Button>
+            <div className={styles.buttonsContainer}>
+              <Button
+                type="rectangle"
+                onButtonClick={() => handleAlterImageClick("api/getImage")}
+              >
+                Reimagine
+              </Button>
+              <Button
+                type="rectangle"
+                onButtonClick={() => handleAlterImageClick("api/resetImage")}
+              >
+                Reset Nft
+              </Button>
+            </div>
           </div>
         </div>
       )}

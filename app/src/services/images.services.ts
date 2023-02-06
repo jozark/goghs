@@ -8,8 +8,11 @@ export async function getImageUrl(nft: Nft): Promise<string> {
 }
 
 /// returns true if successfull
-export async function requestVariationAndMetadataUpdate(mintAddress: PublicKey): Promise<boolean> {
-  const response = await fetch("http://localhost:3001/api/getImage", {
+export async function requestVariationAndMetadataUpdate(
+  mintAddress: PublicKey,
+  endpoint: string
+): Promise<boolean> {
+  const response = await fetch(`http://localhost:3001/${endpoint}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
