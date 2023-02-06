@@ -27,7 +27,7 @@ const ImageGrid = ({ nfts, selectedImage, selectImage }: ImageGridProps) => {
         });
       });
     });
-  }, []);
+  }, [nfts]);
 
   return (
     <div className={styles.container}>
