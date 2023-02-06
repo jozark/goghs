@@ -100,11 +100,17 @@ function App() {
         const nfts = collectionNfts as Nft[];
 
         setCollectionNFTs(nfts);
-        const url = await getImageUrl(nfts[0]);
-        if (!selectedNFT) {
-          setSelectedNFT({ nft: collectionNfts[0], url });
-        }
 
+        let _selectedNft;
+        if (!selectedNFT) {
+          _selectedNft = collectionNfts[0];
+        } else {
+          _selectedNft = nfts.find((nft) => nft.address.toString() == selectedNFT.nft.address.toString());
+        }
+        if (!_selectedNft) return;
+        const url = await getImageUrl(_selectedNft as Nft);
+        console.log(url, "url")
+        setSelectedNFT({ nft: collectionNfts[0], url });
       }
     };
     setNftsAndSelected();
