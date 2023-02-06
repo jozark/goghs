@@ -1,10 +1,8 @@
 import {
   FindNftsByOwnerOutput,
-  JsonMetadata,
   Metadata,
   Metaplex,
   Nft,
-  Sft,
 } from "@metaplex-foundation/js";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import {
@@ -30,6 +28,7 @@ import {
   getImageUrl,
   requestVariationAndMetadataUpdate,
 } from "./services/images.services";
+import { MetaDataOrNft, NftWithUrl } from "./types";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 // ========================================================================================================
@@ -38,12 +37,6 @@ const REFRESH_STATE_ON_PAGE_RELOAD = true;
 const NETWORK_TYPE = WalletAdapterNetwork.Devnet;
 
 // ========================================================================================================
-
-type MetaDataOrNft = Metadata<JsonMetadata<string>> | Nft | Sft;
-interface NftWithUrl {
-  nft: MetaDataOrNft;
-  url: string;
-}
 
 // phantom wallet adapter
 const wallets = [new PhantomWalletAdapter()];
@@ -59,7 +52,7 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [walletPub, setWalletPub] = useState<PublicKey | null>(null);
   const [selectedNFT, setSelectedNFT] = useState<NftWithUrl | null>();
-  const [collectionNFTs, setCollectionNFTs] = useState<Nft[]>([]);
+  const [collectionNFTs, setCollectionNFTs] = useState<NftWithUrl[]>([]);
 
   // set publicKey as state as soon as client connects with phantom
   useEffect(() => {
@@ -93,7 +86,17 @@ function App() {
       // cast to nfts
       const nfts = collectionNfts as Nft[];
 
-      setCollectionNFTs(nfts);
+      // fetch images for all nfts
+      const collectionNftsWithImages: { nft: Nft; url: string }[] =
+        await Promise.all(
+          nfts.map(async (nft) => {
+            return {
+              nft,
+              url: await getImageUrl(nft),
+            };
+          })
+        );
+      setCollectionNFTs(collectionNftsWithImages);
 
       let _selectedNft;
       if (!selectedNFT) {
@@ -130,7 +133,6 @@ function App() {
       (selectedNFT?.nft as Metadata).mintAddress.toString()
     );
 
-    // TODO move this into a service again
     const success = await requestVariationAndMetadataUpdate(
       mintAddress,
       endpoint
@@ -161,9 +163,9 @@ function App() {
         <div className={styles.container}>
           <div className={styles.collectionNfts}>
             <ImageGrid
-              nfts={collectionNFTs}
-              selectedImage={selectedNFT?.nft as Nft | undefined}
-              selectImage={(nft, url) => handleSelectedClick({ nft, url })}
+              nftsWithUrl={collectionNFTs}
+              selectedNft={selectedNFT?.nft as Nft | undefined}
+              selectNft={(nft) => handleSelectedClick(nft)}
             />
           </div>
           <div className={styles.selectedNft}>
