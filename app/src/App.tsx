@@ -152,15 +152,15 @@ function App() {
       {!(wallet as any).connected ? (
         <h2>Connecte dein Wallet du Hund 🐶</h2>
       ) : (
-        <div className={styles.wrapper}>
-          <div className={styles.collectionWrapper}>
+        <div className={styles.container}>
+          <div className={styles.collectionNfts}>
             <ImageGrid
               nfts={collectionNFTs}
               selectedImage={selectedNFT?.nft}
               selectImage={(nft, url) => handleSelectedClick(nft, url)}
             />
           </div>
-          <div className={styles.container}>
+          <div className={styles.selectedNft}>
             {isLoading || !selectedNFT ? (
               <LoadingSpinner />
             ) : (
