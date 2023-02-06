@@ -183,23 +183,26 @@ function App() {
       ) : (
         <div className={styles.container}>
           <div className={styles.collectionNfts}>
+            <div><h2>Wallet</h2></div>
             <ImageGrid
               nftsWithUrl={collectionNFTs}
               selectedNft={selectedNFT?.nft as Nft | undefined}
               selectNft={(nft) => handleSelectedClick(nft)}
             />
           </div>
+
           <div className={styles.selectedNft}>
+            <div><h2>{selectedNFT?.nft?.name}</h2></div>
+
             {isLoading || !selectedNFT ? (
               <LoadingSpinner />
             ) : (
               <>
                 <Image source={selectedNFT?.url} alt="" />
-                <div><h2>{selectedNFT?.nft?.name}</h2></div>
+
               </>
+
             )}
-
-
 
             <div className={styles.buttonsContainer}>
               <Button
