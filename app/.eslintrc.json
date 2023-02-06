@@ -20,7 +20,9 @@
         "@typescript-eslint"
     ],
     "rules": {
-         // suppress errors for missing 'import React' in files
-        "react/react-in-jsx-scope": "off"
+        // suppress errors for missing 'import React' in files
+        "react/react-in-jsx-scope": "off",
+        // lint unawaited promises
+        "@typescript-eslint/no-floating-promises": "error"
     }
 }

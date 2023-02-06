@@ -1,13 +1,18 @@
 import {
   bundlrStorage,
+  FindNftsByOwnerOutput,
+  JsonMetadata,
   keypairIdentity,
+  Metadata,
   Metaplex,
   Nft,
+  Sft,
 } from "@metaplex-foundation/js";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import {
   ConnectionProvider,
   useWallet,
+  WalletContextState,
   WalletProvider,
 } from "@solana/wallet-adapter-react";
 import {
@@ -16,6 +21,7 @@ import {
 } from "@solana/wallet-adapter-react-ui";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
+import assert from "assert";
 import { useEffect, useState } from "react";
 import styles from "./App.module.css";
 import Button from "./components/Button/button";
@@ -26,7 +32,21 @@ import secret from "./devnet.json";
 import { getImageUrl, getVariation } from "./services/images.services";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
-// set up connection
+// ========================================================================================================
+const COLLECTIONADDRESS = "3giiZPDeHYLwLzXbRrJpixF6k61zALoSvR5gRjFq4UP9";
+const REFRESH_STATE_ON_PAGE_RELOAD = true;
+
+
+// ========================================================================================================
+
+type MetaDataOrNft = (Metadata<JsonMetadata<string>> | Nft | Sft);
+interface NftWithUrl {
+  nft: MetaDataOrNft,
+  url: string,
+}
+
+
+// set up connection to chain
 const network = WalletAdapterNetwork.Devnet;
 const endpoint = clusterApiUrl(network);
 const wallets = [new PhantomWalletAdapter()];
@@ -44,50 +64,62 @@ metaplex.use(
   })
 );
 
-const COLLECTIONADDRESS = "3giiZPDeHYLwLzXbRrJpixF6k61zALoSvR5gRjFq4UP9";
 
 function App() {
   const wallet = useWallet();
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [walletPub, setWalletPub] = useState<PublicKey | null>(null);
-  //TODO create interface
-  const [selectedNFT, setSelectedNFT] = useState<{ nft: any; url: string }>();
+  const [selectedNFT, setSelectedNFT] = useState<NftWithUrl>();
   const [collectionNFTs, setCollectionNFTs] = useState<Nft[]>([]);
 
   // set publicKey as state as soon as client connects with phantom
   useEffect(() => {
-    if ((wallet as any).connected) {
+    if ((wallet as WalletContextState).connected) {
       setWalletPub(wallet.publicKey);
     }
   }, [wallet]);
 
-  useEffect(() => {
-    //Is this correct to use async fn inside of useEffect?
-    const triggerFindNfts = async () => {
-      if (walletPub) {
-        await findNfts();
+  /// Return all nfts from our collection if any.
+  ///
+  /// Expects [walletPub] to be present
+  const getCollectionNfts = async (): Promise<Array<MetaDataOrNft>> => {
+    assert(walletPub);
+
+    const allNfts: FindNftsByOwnerOutput = await metaplex.nfts().findAllByOwner({ owner: walletPub });
+    return allNfts.filter(
+      (nft: MetaDataOrNft) => nft.collection?.address.toString() === COLLECTIONADDRESS
+    );
+  }
+
+  /// If we have a wallet connected, get NFTs from our collection and select first
+  const setCollectionAndSelected = () => {
+    if (!walletPub) return;
+
+    // note: must define async function in here, since effect itself may not be async
+    // _____ are then only allowed to use data inside that function
+    const setNftsAndSelected = async () => {
+      const collectionNfts = await getCollectionNfts();
+      // TODO handle what to do if no collection nft found
+      if (collectionNfts.length > 0) {
+        // cast to nfts
+        const nfts = collectionNfts as Nft[];
+
+        setCollectionNFTs(nfts);
+        const url = await getImageUrl(nfts[0]);
+        setSelectedNFT({ nft: collectionNfts[0], url });
       }
     };
-    triggerFindNfts();
-  }, [walletPub]);
+    setNftsAndSelected();
+  }
 
-  const findNfts = async () => {
-    if (!walletPub) {
-      return;
-    }
+  // Reload on page refresh // TODO this is mainly for development, not sure if we need this in PROD
+  if (REFRESH_STATE_ON_PAGE_RELOAD) {
+    useEffect(setCollectionAndSelected, []);
+  }
+  // Reload once the wallet is connected (or disconnected, but we exit early in that case)
+  useEffect(setCollectionAndSelected, [walletPub]);
 
-    const allNfts = await metaplex.nfts().findAllByOwner({ owner: walletPub });
-    const collectionNfts: any = allNfts.filter(
-      (nft) => nft.collection?.address.toString() === COLLECTIONADDRESS
-    );
-
-    //TODO handle what to do if no collection nft found
-    if (collectionNfts.length > 0) {
-      setCollectionNFTs(collectionNfts);
-      const url = await getImageUrl(collectionNfts[0]);
-      setSelectedNFT({ nft: collectionNfts[0], url });
-    }
-  };
 
   // This functionality should be placed in the backend
   // Pass mintAddress to backend, only receive confirmation
@@ -103,8 +135,8 @@ function App() {
     const newImageFile = await getVariation(selectedNFT.url);
     console.log(newImageFile, "newImageFile");
 
-    // get type=NftWithToken from the selectedNft
-    const mintAddress = new PublicKey(selectedNFT?.nft.mintAddress.toString());
+    // get type=NftWithToken from the selectedNft // TODO why can we assume metadata here
+    const mintAddress = new PublicKey((selectedNFT?.nft as Metadata).mintAddress.toString());
     const nftWithToken = await metaplex.nfts().findByMint({ mintAddress });
 
     // TEST: Try to upload image this way
@@ -136,8 +168,8 @@ function App() {
     }
   };
 
-  const handleSelectedClick = (nft: any, url: string) => {
-    setSelectedNFT({ nft, url });
+  const handleSelectedClick = (nftWithUrl: NftWithUrl) => {
+    setSelectedNFT(nftWithUrl);
   };
 
   return (
@@ -148,15 +180,15 @@ function App() {
         </a>
         <WalletMultiButton />
       </header>
-      {!(wallet as any).connected ? (
+      {!(wallet).connected ? (
         <h2>Connecte dein Wallet du Hund 🐶</h2>
       ) : (
         <div className={styles.container}>
           <div className={styles.collectionNfts}>
             <ImageGrid
               nfts={collectionNFTs}
-              selectedImage={selectedNFT?.nft}
-              selectImage={(nft, url) => handleSelectedClick(nft, url)}
+              selectedImage={selectedNFT?.nft as (Nft | undefined)}
+              selectImage={(nft, url) => handleSelectedClick({ nft, url })}
             />
           </div>
           <div className={styles.selectedNft}>
