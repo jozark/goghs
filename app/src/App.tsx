@@ -143,7 +143,8 @@ function App() {
     fetchCollectionAndSetSelected(null);
   }, [walletPub]);
 
-  const handleAlterImageClick = async (endpoint: string) => {
+  // TODO refactor again, we only need the evolution for the reset param
+  const handleAlterImageClick = async (endpoint: string, evolution: number) => {
     if (!selectedNFT?.url) return;
 
     setIsLoading(true);
@@ -154,7 +155,8 @@ function App() {
 
     const success = await requestVariationAndMetadataUpdate(
       mintAddress,
-      endpoint
+      endpoint,
+      evolution,
     );
 
     if (!success) return; // TODO maybe show a small error snackbar?
@@ -202,22 +204,18 @@ function App() {
             <div className={styles.buttonsContainer}>
               <Button
                 type="rectangle"
-                onButtonClick={() => handleAlterImageClick("api/getImage")}
+                onButtonClick={() => handleAlterImageClick("api/getImage", -1)}
               >
                 Reimagine
               </Button>
-              <Button
-                type="rectangle"
-                onButtonClick={() => handleAlterImageClick("api/resetImage")}
-              >
-                Reset Nft
-              </Button>
+
             </div>
           </div>
 
           <div className={styles.collectionNfts}>
             <HistoryGrid
-              nftWithUrl={selectedMetadata as NftWithToken | undefined}
+              nftWithToken={selectedMetadata as NftWithToken | undefined}
+              onChooseEvolution={(i) => handleAlterImageClick("api/resetImage", i)}
             />
           </div>
         </div>

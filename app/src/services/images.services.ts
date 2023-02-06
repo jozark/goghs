@@ -10,7 +10,8 @@ export async function getImageUrl(nft: Nft): Promise<string> {
 /// returns true if successfull
 export async function requestVariationAndMetadataUpdate(
   mintAddress: PublicKey,
-  endpoint: string
+  endpoint: string,
+  evolution: number, // TODO this only makes sense for the reset endpoint; needs refactor
 ): Promise<boolean> {
   const response = await fetch(`http://localhost:3001/${endpoint}`, {
     method: "POST",
@@ -19,6 +20,7 @@ export async function requestVariationAndMetadataUpdate(
     },
     body: JSON.stringify({
       mintAddress: mintAddress,
+      evolution: evolution,
     }),
   });
   return response.status == 200;

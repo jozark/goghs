@@ -1,20 +1,30 @@
-import { Nft, NftWithToken } from "@metaplex-foundation/js";
-import { NftWithUrl } from "../../types";
+import { NftWithToken } from "@metaplex-foundation/js";
+import Button from "../Button/button";
+
+
 import styles from "./historyGrid.module.css";
-import { hostname } from "os";
+
 
 type HistoryGridProps = {
-    nftWithUrl: NftWithToken | null | undefined;
+    nftWithToken: NftWithToken | null | undefined;
+    //handleAlterImageClick("api/resetImage", index)
+    onChooseEvolution: (evolutionIndex: number) => void;
 };
 
-const HistoryGrid = ({ nftWithUrl }: HistoryGridProps) => {
+const HistoryGrid = (props: HistoryGridProps) => {
 
-    console.log(nftWithUrl)
-    const history = nftWithUrl?.json?.properties?.history as (Array<string> | null)
+    console.log(props.nftWithToken)
+    const history = props.nftWithToken?.json?.properties?.history as (Array<string> | null)
+    const attributes = props.nftWithToken?.json?.attributes;
+
+    if (!history || !attributes) return <div>Penis</div>
+
+
+    const currentEvolution = Number((attributes as Array<any>)[0].value as string);
 
     return (
         <div className={styles.container}>
-            {history ? history.map((url) => {
+            {history.map((url, index) => {
                 return (
                     <div
                         key={url}
@@ -24,9 +34,16 @@ const HistoryGrid = ({ nftWithUrl }: HistoryGridProps) => {
                             src={url}
                             alt=""
                         />
+                        {(currentEvolution == index) ||
+                            <Button
+                                type="rectangle"
+                                onButtonClick={() => props.onChooseEvolution(index)}>
+                                Reset
+                            </Button>
+                        }
                     </div>
                 )
-            }) : <div>Penis</div>}
+            })}
 
         </div>
     );
