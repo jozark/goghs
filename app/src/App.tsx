@@ -195,7 +195,7 @@ function App() {
             ) : (
               <>
                 <Image source={selectedNFT?.url} alt="" />
-                <div>{selectedNFT?.nft?.name}</div>
+                <div><h2>{selectedNFT?.nft?.name}</h2></div>
               </>
             )}
 
@@ -213,6 +213,7 @@ function App() {
           </div>
 
           <div className={styles.collectionNfts}>
+            <h2>History</h2>
             <HistoryGrid
               nftWithToken={selectedMetadata as NftWithToken | undefined}
               onChooseEvolution={(i) => handleAlterImageClick("api/resetImage", i)}

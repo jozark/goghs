@@ -17,13 +17,14 @@ const HistoryGrid = (props: HistoryGridProps) => {
     const history = props.nftWithToken?.json?.properties?.history as (Array<string> | null)
     const attributes = props.nftWithToken?.json?.attributes;
 
-    if (!history || !attributes) return <div>Penis</div>
+    if (!history || !attributes) return <p>no history found</p>
 
 
     const currentEvolution = Number((attributes as Array<any>)[0].value as string);
 
     return (
         <div className={styles.container}>
+
             {history.map((url, index) => {
                 return (
                     <div

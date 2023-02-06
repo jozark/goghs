@@ -5,6 +5,10 @@
     gap: 0.5rem;
 }
 
+.headerwrapper {
+    width: 100%;
+}
+
 .nft:hover {
     cursor: pointer;
     transform: scale(1.1);
