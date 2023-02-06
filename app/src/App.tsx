@@ -30,7 +30,7 @@ import { getImageUrl, requestVariationAndMetadataUpdate } from "./services/image
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 // ========================================================================================================
-const COLLECTIONADDRESS = "3giiZPDeHYLwLzXbRrJpixF6k61zALoSvR5gRjFq4UP9";
+const COLLECTIONADDRESS = "7bXLxXTJetDZsdTo5v8zijAP2BKGL6Rnrj7BGBQucmXi";
 const REFRESH_STATE_ON_PAGE_RELOAD = true;
 const NETWORK_TYPE = WalletAdapterNetwork.Devnet;
 
@@ -50,13 +50,6 @@ const wallets = [new PhantomWalletAdapter()];
 const endpoint = clusterApiUrl(NETWORK_TYPE);
 const connection = new Connection(endpoint, "confirmed");
 const metaplex = new Metaplex(connection);
-// metaplex.use(
-//   bundlrStorage({
-//     address: "https://devnet.bundlr.network",
-//     providerUrl: "https://api.devnet.solana.com",
-//     timeout: 60000,
-//   })
-// );
 
 
 function App() {

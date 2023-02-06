@@ -18,6 +18,7 @@ const ImageGrid = ({ nfts, selectedImage, selectImage }: ImageGridProps) => {
   const [images, setImages] = useState<Map<Nft, string | null>>(new Map());
 
   useEffect(() => {
+    setImages(new Map());
     nfts.forEach((nft) => {
       getImageUrl(nft).then((url) => {
         setImages((prevImages) => {
@@ -37,9 +38,8 @@ const ImageGrid = ({ nfts, selectedImage, selectImage }: ImageGridProps) => {
             key={nft.address.toString()}
             className={styles.nft}
             style={{
-              border: `${
-                nft === selectedImage ? "3px solid red" : "1px solid black"
-              }`,
+              border: `${nft === selectedImage ? "3px solid red" : "1px solid black"
+                }`,
             }}
           >
             <img src={image} alt="" onClick={() => selectImage(nft, image)} />
