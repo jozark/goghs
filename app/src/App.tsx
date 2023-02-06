@@ -3,6 +3,7 @@ import {
   Metadata,
   Metaplex,
   Nft,
+  NftWithToken,
 } from "@metaplex-foundation/js";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import {
@@ -29,6 +30,7 @@ import {
   requestVariationAndMetadataUpdate,
 } from "./services/images.services";
 import { MetaDataOrNft, NftWithUrl } from "./types";
+import HistoryGrid from "./components/HistoryGrid/HistoryGrid";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 // ========================================================================================================
@@ -52,6 +54,7 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [walletPub, setWalletPub] = useState<PublicKey | null>(null);
   const [selectedNFT, setSelectedNFT] = useState<NftWithUrl | null>();
+  const [selectedMetadata, setSelectedMetadata] = useState<NftWithToken | null | undefined>();
   const [collectionNFTs, setCollectionNFTs] = useState<NftWithUrl[]>([]);
 
   // set publicKey as state as soon as client connects with phantom
@@ -108,7 +111,14 @@ function App() {
       }
       if (!_selectedNft) return;
       const url = await getImageUrl(_selectedNft as Nft);
-      console.log(url, "url");
+
+
+
+      const metdata = await metaplex
+        .nfts()
+        .findByMint({ mintAddress: new PublicKey((_selectedNft as Metadata).mintAddress.toString()) });
+
+      setSelectedMetadata(metdata as NftWithToken)
       setSelectedNFT({ nft: _selectedNft, url });
     }
   };
@@ -147,6 +157,7 @@ function App() {
 
   const handleSelectedClick = (nftWithUrl: NftWithUrl) => {
     setSelectedNFT(nftWithUrl);
+    fetchCollectionAndSetSelected()
   };
 
   return (
@@ -177,6 +188,9 @@ function App() {
                 <div>{selectedNFT?.nft?.name}</div>
               </>
             )}
+
+
+
             <div className={styles.buttonsContainer}>
               <Button
                 type="rectangle"
@@ -191,6 +205,12 @@ function App() {
                 Reset Nft
               </Button>
             </div>
+          </div>
+
+          <div className={styles.collectionNfts}>
+            <HistoryGrid
+              nftWithUrl={selectedMetadata as NftWithToken | undefined}
+            />
           </div>
         </div>
       )}

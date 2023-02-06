@@ -17,12 +17,11 @@ const ImageGrid = ({ nftsWithUrl, selectedNft, selectNft }: ImageGridProps) => {
             key={nftWithUrl.nft.address.toString()}
             className={styles.nft}
             style={{
-              border: `${
-                nftWithUrl.nft.address.toString() ===
-                selectedNft?.address.toString()
+              border: `${nftWithUrl.nft.address.toString() ===
+                  selectedNft?.address.toString()
                   ? "3px solid red"
                   : "1px solid black"
-              }`,
+                }`,
             }}
           >
             <img
