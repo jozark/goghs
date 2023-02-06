@@ -55,6 +55,7 @@ function App() {
   const [selectedNFT, setSelectedNFT] = useState<{ nft: any; url: string }>();
   const [collectionNFTs, setCollectionNFTs] = useState<Nft[]>([]);
 
+  // set publicKey as state as soon as client connects with phantom
   useEffect(() => {
     if ((wallet as any).connected) {
       setWalletPub(wallet.publicKey);
@@ -165,8 +166,8 @@ function App() {
               <LoadingSpinner />
             ) : (
               <>
-                <Image source={selectedNFT?.url || ""} alt="" />
-                <div>{selectedNFT?.nft?.name || "not available"}</div>
+                <Image source={selectedNFT?.url} alt="" />
+                <div>{selectedNFT?.nft?.name}</div>
               </>
             )}
             <Button type="rectangle" onButtonClick={handleGetVariationClick}>

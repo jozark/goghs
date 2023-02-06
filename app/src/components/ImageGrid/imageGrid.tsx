@@ -10,6 +10,11 @@ type ImageGridProps = {
   selectImage: (nft: Nft, url: string) => void;
 };
 
+// TODO
+// lift logic to app component
+// will fix the missing collectionNft container after reload
+// + makes map of <nft, nftImage> available for the app component
+
 const ImageGrid = ({ nfts, selectedImage, selectImage }: ImageGridProps) => {
   const [images, setImages] = useState<Map<Nft, string | null>>(new Map());
 
