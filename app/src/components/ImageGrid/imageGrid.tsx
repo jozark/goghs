@@ -35,7 +35,7 @@ const ImageGrid = ({ nfts, selectedImage, selectImage }: ImageGridProps) => {
       {Array.from(images.entries()).map(([nft, image]) => {
         return image ? (
           <div
-            key={image}
+            key={nft.address.toString()}
             className={styles.nft}
             style={{
               border: `${
