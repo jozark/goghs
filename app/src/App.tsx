@@ -102,7 +102,10 @@ function App() {
     return metaplex;
   };
 
-  const sendTransaction = async (solAmount: number): Promise<boolean> => {
+  const sendTransaction = async (
+    solAmount: number,
+    toWallet: PublicKey
+  ): Promise<boolean> => {
     try {
       const connection = new Connection(clusterEndpoint, "processed");
       const provider = getProvider();
@@ -112,7 +115,7 @@ function App() {
       const txn = new Transaction().add(
         SystemProgram.transfer({
           fromPubkey: provider.wallet.publicKey,
-          toPubkey: toPublicKey("9RKaq2srT5eewGo7DkGVXfkmr1eBser2VGLa37b65JKN"),
+          toPubkey: toWallet,
           lamports: solAmount * LAMPORTS_PER_SOL,
         })
       );
@@ -209,7 +212,10 @@ function App() {
 
     setIsLoading(true);
 
-    const transactionSucceded = await sendTransaction(0.1);
+    const transactionSucceded = await sendTransaction(
+      0.1,
+      toPublicKey("9RKaq2srT5eewGo7DkGVXfkmr1eBser2VGLa37b65JKN")
+    );
 
     if (!transactionSucceded) {
       console.log("nice try bro 💀");
