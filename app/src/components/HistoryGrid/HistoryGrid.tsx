@@ -25,7 +25,7 @@ const HistoryGrid = (props: HistoryGridProps) => {
         return (
           <div key={url} className={styles.nft}>
             <img src={url} alt="" />
-            {currentEvolution == index || (
+            {currentEvolution != index && (
               <Button
                 type="rectangle"
                 onButtonClick={() => props.onChooseEvolution(index)}
