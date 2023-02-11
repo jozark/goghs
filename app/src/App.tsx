@@ -57,11 +57,17 @@ function App() {
   const [selectedMetadata, setSelectedMetadata] = useState<NftWithToken | null | undefined>();
   const [collectionNFTs, setCollectionNFTs] = useState<NftWithUrl[]>([]);
 
-  //const [eventFromFlutter, setEventFromFlutter] = useState();
+  window.parent.addEventListener('message', (event) => {
+    const data = event.data;
+    console.log("event data", data);
 
-  // window.parent.addEventListener('message', (event) => {
-  //   setEventFromFlutter(JSON.parse(event.data));
-  // }, false,);
+    // if (data instanceof Map) {
+
+    //   if (data.get("msg_id") == "create_new") {
+    //     console.log("create new at path", data.get("index_path"));
+    //   }
+    // }
+  }, false);
 
 
 
