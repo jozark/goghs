@@ -57,6 +57,14 @@ function App() {
   const [selectedMetadata, setSelectedMetadata] = useState<NftWithToken | null | undefined>();
   const [collectionNFTs, setCollectionNFTs] = useState<NftWithUrl[]>([]);
 
+  //const [eventFromFlutter, setEventFromFlutter] = useState();
+
+  // window.parent.addEventListener('message', (event) => {
+  //   setEventFromFlutter(JSON.parse(event.data));
+  // }, false,);
+
+
+
   // set publicKey as state as soon as client connects with phantom
   useEffect(() => {
     if ((wallet as WalletContextState).connected) {
@@ -129,6 +137,15 @@ function App() {
 
       setSelectedMetadata(metdata as NftWithToken)
 
+      const iframe = document.getElementById('flutter') as HTMLIFrameElement;
+      iframe.contentWindow?.postMessage(
+        {
+          msg_id: "select_nft",
+          metadata: metdata,
+        },
+        "*"
+      );
+
     }
   };
 
@@ -199,9 +216,7 @@ function App() {
             ) : (
               <>
                 <Image source={selectedNFT?.url} alt="" />
-
               </>
-
             )}
 
             <div className={styles.buttonsContainer}>
@@ -224,6 +239,7 @@ function App() {
           </div>
         </div>
       )}
+      <iframe id="flutter" src="flutter/index.html"></iframe>
     </div>
   );
 }
