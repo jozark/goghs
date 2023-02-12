@@ -3,7 +3,6 @@ import {
   Metadata,
   Metaplex,
   Nft,
-  NftWithToken,
 } from "@metaplex-foundation/js";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import {
@@ -30,11 +29,10 @@ import {
   requestVariationAndMetadataUpdate,
 } from "./services/images.services";
 import { MetaDataOrNft, NftWithUrl } from "./types";
-import HistoryGrid from "./components/HistoryGrid/HistoryGrid";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 // ========================================================================================================
-const COLLECTIONADDRESS = "ByQ8WvACSDQpTRqULkHEJHUB3cbU6jtyHH7qPrsJdvbx";
+const COLLECTIONADDRESS = "4PVaRRoCybCJSfmkobCe4oUhXjUyksrMT7h9TzXYncjn";
 const REFRESH_STATE_ON_PAGE_RELOAD = true;
 const NETWORK_TYPE = WalletAdapterNetwork.Devnet;
 
@@ -54,7 +52,6 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [walletPub, setWalletPub] = useState<PublicKey | null>(null);
   const [selectedNFT, setSelectedNFT] = useState<NftWithUrl | null>();
-  const [selectedMetadata, setSelectedMetadata] = useState<NftWithToken | null | undefined>();
   const [collectionNFTs, setCollectionNFTs] = useState<NftWithUrl[]>([]);
 
   window.parent.addEventListener('message', (event) => {
@@ -115,10 +112,11 @@ function App() {
         );
       setCollectionNFTs(collectionNftsWithImages);
 
-      let _selectedNft;
+      let _selectedNft: MetaDataOrNft;
+      let fireUpdate;
       if (nftWithUrl) {
         _selectedNft = nftWithUrl.nft;
-        setSelectedNFT(nftWithUrl);
+        fireUpdate = () => setSelectedNFT(nftWithUrl);
       } else {
 
 
@@ -127,30 +125,37 @@ function App() {
         } else {
           _selectedNft = nfts.find(
             (nft) => nft.address.toString() == selectedNFT.nft.address.toString()
-          );
+          ) as Nft;
         }
         if (!_selectedNft) return;
         const url = await getImageUrl(_selectedNft as Nft);
 
-        setSelectedNFT({ nft: _selectedNft, url });
+        fireUpdate = () => setSelectedNFT({ nft: _selectedNft, url });
       }
 
 
 
-      const metdata = await metaplex
+      const metadata = await metaplex
         .nfts()
         .findByMint({ mintAddress: new PublicKey((_selectedNft as Metadata).mintAddress.toString()) });
-
-      setSelectedMetadata(metdata as NftWithToken)
 
       const iframe = document.getElementById('flutter') as HTMLIFrameElement;
       iframe.contentWindow?.postMessage(
         {
           msg_id: "select_nft",
-          metadata: metdata,
+          metadata: metadata?.json?.properties?.history || {
+            focusIndex: 0,
+            visiblePath: [0],
+            rootImages: {
+              // wtf JS wtf is this shit, you seriously want me to put brackets here you fucking ass clown
+              [metadata?.json?.image || ""]: {},
+            }
+          },
         },
         "*"
       );
+
+      fireUpdate();
 
     }
   };
@@ -235,17 +240,9 @@ function App() {
 
             </div>
           </div>
-
-          <div className={styles.collectionNfts}>
-            <h2>History</h2>
-            <HistoryGrid
-              nftWithToken={selectedMetadata as NftWithToken | undefined}
-              onChooseEvolution={(i) => handleAlterImageClick("api/resetImage", i)}
-            />
-          </div>
         </div>
       )}
-      <iframe id="flutter" src="flutter/index.html"></iframe>
+      <iframe width="90%" height="800px" id="flutter" src="flutter/index.html"></iframe>
     </div>
   );
 }
