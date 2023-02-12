@@ -54,19 +54,31 @@ function App() {
   const [selectedNFT, setSelectedNFT] = useState<NftWithUrl | null>();
   const [collectionNFTs, setCollectionNFTs] = useState<NftWithUrl[]>([]);
 
-  window.parent.addEventListener('message', (event) => {
-    const data = event.data;
-    console.log("event data", data);
+  useEffect(() => {
+    console.log("=============================")
+    window.parent.addEventListener('message', (event) => {
+      const data = event.data;
 
-    // if (data instanceof Map) {
+      try {
+        const json = JSON.parse(data);
+        if (json) {
+          if (json["msg_id"] == "create_new") {
+            const indexPath = json["index_path"];
+            console.log("create new ", indexPath);
+            return;
+          }
+          if (json["msg_id"] == "set_cover") {
+            const indexPath = json["index_path"];
+            console.log("set cover ", indexPath);
+            return;
+          }
 
-    //   if (data.get("msg_id") == "create_new") {
-    //     console.log("create new at path", data.get("index_path"));
-    //   }
-    // }
-  }, false);
-
-
+        }
+      } catch {
+        //
+      }
+    }, false);
+  }, []);
 
   // set publicKey as state as soon as client connects with phantom
   useEffect(() => {
