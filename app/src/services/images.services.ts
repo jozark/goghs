@@ -21,6 +21,9 @@ export async function requestVariationAndMetadataUpdate(
     body: JSON.stringify({
       mintAddress: mintAddress,
       evolution: evolution,
+      // new
+      nft_address: mintAddress,
+      index_path: [0],
     }),
   });
   return response.status == 200;

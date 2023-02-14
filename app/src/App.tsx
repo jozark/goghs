@@ -3,7 +3,6 @@ import {
   Metadata,
   Metaplex,
   Nft,
-  NftWithToken,
   toPublicKey,
 } from "@metaplex-foundation/js";
 import { AnchorProvider } from "@project-serum/anchor";
@@ -35,7 +34,6 @@ import assert from "assert";
 import { useEffect, useState } from "react";
 import styles from "./App.module.css";
 import Button from "./components/Button/button";
-import HistoryGrid from "./components/HistoryGrid/HistoryGrid";
 import Image from "./components/Image/image";
 import ImageGrid from "./components/ImageGrid/imageGrid";
 import LoadingSpinner from "./components/LoadingSpinner/loadingSpinner";
@@ -47,7 +45,7 @@ import { MetaDataOrNft, NftWithUrl } from "./types";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 // ========================================================================================================
-const COLLECTIONADDRESS = "ByQ8WvACSDQpTRqULkHEJHUB3cbU6jtyHH7qPrsJdvbx";
+const COLLECTIONADDRESS = "4PVaRRoCybCJSfmkobCe4oUhXjUyksrMT7h9TzXYncjn";
 const REFRESH_STATE_ON_PAGE_RELOAD = true;
 const NETWORK_TYPE = WalletAdapterNetwork.Devnet;
 
@@ -59,16 +57,84 @@ const wallets = [new PhantomWalletAdapter()];
 // set up connection to chain
 const clusterEndpoint = clusterApiUrl(NETWORK_TYPE);
 
+// selectedNFT always undefined in the message event listener
+// although a lot of time passes between setting and the message being triggerd.
+// feel free to figure this out, im done
+let iHateReact: NftWithUrl | null = null;
+
 function App() {
   const wallet = useWallet();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [walletPub, setWalletPub] = useState<PublicKey | null>(null);
   const [selectedNFT, setSelectedNFT] = useState<NftWithUrl | null>();
-  const [selectedMetadata, setSelectedMetadata] = useState<
-    NftWithToken | null | undefined
-  >();
   const [collectionNFTs, setCollectionNFTs] = useState<NftWithUrl[]>([]);
+
+
+  useEffect(() => {
+    console.log("=============================")
+    window.parent.addEventListener('message', (event) => {
+      const data = event.data;
+
+      try {
+        const json = JSON.parse(data);
+        if (json) {
+          if (json["msg_id"] == "newVariation") {
+            const indexPath = json["index_path"];
+            console.log("create new ", indexPath);
+
+            const mintAddress = new PublicKey(
+              (iHateReact?.nft as Metadata).mintAddress.toString()
+            );
+
+            const apiCall = async () => {
+              const res = await fetch(`http://localhost:3001/api/variation`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  nft_address: mintAddress,
+                  index_path: indexPath,
+                }),
+              });
+              console.log(res);
+              fetchCollectionAndSetSelected(null);
+            };
+            apiCall();
+            return;
+          }
+          if (json["msg_id"] == "setCover") {
+            const indexPath = json["index_path"];
+            console.log("set cover ", indexPath);
+
+            const mintAddress = new PublicKey(
+              (selectedNFT?.nft as Metadata).mintAddress.toString()
+            );
+            const apiCall = async () => {
+              const res = await fetch(`http://localhost:3001/api/setCover`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  nft_address: mintAddress,
+                  index_path: indexPath,
+                }),
+              });
+              console.log(res);
+              fetchCollectionAndSetSelected(null);
+            };
+            apiCall();
+            return;
+          }
+
+        }
+      } catch {
+        //
+      }
+    }, false);
+  }, []);
 
   // set publicKey as state as soon as client connects with phantom
   useEffect(() => {
@@ -175,34 +241,51 @@ function App() {
         );
       setCollectionNFTs(collectionNftsWithImages);
 
-      // TODO refactor. m monkey brain can not follow
-      let _selectedNft;
+      let _selectedNft: MetaDataOrNft;
+
       if (nftWithUrl) {
         _selectedNft = nftWithUrl.nft;
-        setSelectedNFT(nftWithUrl);
+
+        iHateReact = nftWithUrl;
       } else {
         if (!selectedNFT) {
           _selectedNft = collectionNfts[0];
         } else {
           _selectedNft = nfts.find(
-            (nft) =>
-              nft.address.toString() == selectedNFT.nft.address.toString()
-          );
+
+            (nft) => nft.address.toString() == selectedNFT.nft.address.toString()
+          ) as Nft;
         }
         if (!_selectedNft) return;
         const url = await getImageUrl(_selectedNft as Nft);
 
-        setSelectedNFT({ nft: _selectedNft, url });
+        iHateReact = { nft: _selectedNft, url };
       }
 
       const metaplex = getMetaplex();
-      const metdata = await metaplex.nfts().findByMint({
-        mintAddress: new PublicKey(
-          (_selectedNft as Metadata).mintAddress.toString()
-        ),
-      });
 
-      setSelectedMetadata(metdata as NftWithToken);
+      const metadata = await metaplex
+        .nfts()
+        .findByMint({ mintAddress: new PublicKey((_selectedNft as Metadata).mintAddress.toString()) });
+
+      const iframe = document.getElementById('flutter') as HTMLIFrameElement;
+      iframe.contentWindow?.postMessage(
+        {
+          msg_id: "nft_loaded",
+          history: metadata?.json?.properties?.history || {
+            focusIndex: 0,
+            visiblePath: [0],
+            rootImages: {
+              // wtf JS wtf is this shit, you seriously want me to put brackets here you fucking ass clown
+              [metadata?.json?.image || ""]: {},
+            }
+          },
+        },
+        "*"
+      );
+
+      setSelectedNFT(iHateReact);
+
     }
   };
 
@@ -292,21 +375,11 @@ function App() {
               </Button>
             </div>
           </div>
-
-          <div>
-            <h2 className={styles.mb1p5}>History</h2>
-            <div className={styles.collectionNfts}>
-              <HistoryGrid
-                nftWithToken={selectedMetadata as NftWithToken | undefined}
-                onChooseEvolution={(i) =>
-                  handleAlterImageClick("api/resetImage", i)
-                }
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+        </div >
+      )
+      }
+      <iframe width="90%" height="800px" id="flutter" src="flutter/index.html"></iframe>
+    </div >
   );
 }
 
