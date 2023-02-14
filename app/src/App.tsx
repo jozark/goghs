@@ -46,6 +46,11 @@ const endpoint = clusterApiUrl(NETWORK_TYPE);
 const connection = new Connection(endpoint, "confirmed");
 const metaplex = new Metaplex(connection);
 
+// selectedNFT always undefined in the message event listener
+// although a lot of time passes between setting and the message being triggerd.
+// feel free to figure this out, im done
+let iHateReact: NftWithUrl | null = null;
+
 function App() {
   const wallet = useWallet();
 
@@ -53,6 +58,7 @@ function App() {
   const [walletPub, setWalletPub] = useState<PublicKey | null>(null);
   const [selectedNFT, setSelectedNFT] = useState<NftWithUrl | null>();
   const [collectionNFTs, setCollectionNFTs] = useState<NftWithUrl[]>([]);
+
 
   useEffect(() => {
     console.log("=============================")
@@ -62,14 +68,53 @@ function App() {
       try {
         const json = JSON.parse(data);
         if (json) {
-          if (json["msg_id"] == "create_new") {
+          if (json["msg_id"] == "newVariation") {
             const indexPath = json["index_path"];
             console.log("create new ", indexPath);
+
+            const mintAddress = new PublicKey(
+              (iHateReact?.nft as Metadata).mintAddress.toString()
+            );
+
+            const apiCall = async () => {
+              const res = await fetch(`http://localhost:3001/api/variation`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  nft_address: mintAddress,
+                  index_path: indexPath,
+                }),
+              });
+              console.log(res);
+              fetchCollectionAndSetSelected(null);
+            };
+            apiCall();
             return;
           }
-          if (json["msg_id"] == "set_cover") {
+          if (json["msg_id"] == "setCover") {
             const indexPath = json["index_path"];
             console.log("set cover ", indexPath);
+
+            const mintAddress = new PublicKey(
+              (selectedNFT?.nft as Metadata).mintAddress.toString()
+            );
+            const apiCall = async () => {
+              const res = await fetch(`http://localhost:3001/api/setCover`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  nft_address: mintAddress,
+                  index_path: indexPath,
+                }),
+              });
+              console.log(res);
+              fetchCollectionAndSetSelected(null);
+            };
+            apiCall();
             return;
           }
 
@@ -125,10 +170,10 @@ function App() {
       setCollectionNFTs(collectionNftsWithImages);
 
       let _selectedNft: MetaDataOrNft;
-      let fireUpdate;
       if (nftWithUrl) {
         _selectedNft = nftWithUrl.nft;
-        fireUpdate = () => setSelectedNFT(nftWithUrl);
+
+        iHateReact = nftWithUrl;
       } else {
 
 
@@ -142,7 +187,7 @@ function App() {
         if (!_selectedNft) return;
         const url = await getImageUrl(_selectedNft as Nft);
 
-        fireUpdate = () => setSelectedNFT({ nft: _selectedNft, url });
+        iHateReact = { nft: _selectedNft, url };
       }
 
 
@@ -154,8 +199,8 @@ function App() {
       const iframe = document.getElementById('flutter') as HTMLIFrameElement;
       iframe.contentWindow?.postMessage(
         {
-          msg_id: "select_nft",
-          metadata: metadata?.json?.properties?.history || {
+          msg_id: "nft_loaded",
+          history: metadata?.json?.properties?.history || {
             focusIndex: 0,
             visiblePath: [0],
             rootImages: {
@@ -167,8 +212,7 @@ function App() {
         "*"
       );
 
-      fireUpdate();
-
+      setSelectedNFT(iHateReact);
     }
   };
 
